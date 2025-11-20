@@ -94,10 +94,10 @@ describe('SimulationController', () => {
     });
 
     it('should set time scale', () => {
-      controller.setTimeScale(1e6);
+      controller.setTimeScale(1e3);
       
       const timeScale = controller.getTimeScale();
-      expect(timeScale).toBe(1e6);
+      expect(timeScale).toBe(1e3);
     });
 
     it('should throw error for negative time scale', () => {
@@ -170,14 +170,14 @@ describe('SimulationController', () => {
   describe('getStatus', () => {
     it('should return complete status', () => {
       controller.initializeSimulation(testCloudParams);
-      controller.setTimeScale(1e6);
+      controller.setTimeScale(1e3);
       controller.startSimulation();
       
       const status = controller.getStatus();
       
       expect(status.state).toBe(SimulationState.RUNNING);
       expect(status.currentTime).toBe(0);
-      expect(status.timeScale).toBe(1e6);
+      expect(status.timeScale).toBe(1e3);
       expect(status.system).toBeDefined();
     });
   });
