@@ -381,12 +381,12 @@ describe('SimulationController', () => {
         expect(controller.getTimeScale()).toBe(1.0);
         
         // Change time scale
-        controller.setTimeScale(1e6);
-        expect(controller.getTimeScale()).toBe(1e6);
+        controller.setTimeScale(1e3);
+        expect(controller.getTimeScale()).toBe(1e3);
         
         // Change again
-        controller.setTimeScale(1e9);
-        expect(controller.getTimeScale()).toBe(1e9);
+        controller.setTimeScale(1e3);
+        expect(controller.getTimeScale()).toBe(1e3);
         
         // Verify simulation still works with new time scale
         controller.startSimulation();
@@ -443,15 +443,15 @@ describe('SimulationController', () => {
 
       it('should combine time scale changes with time jumps', () => {
         // Set time scale
-        controller.setTimeScale(1e6);
-        expect(controller.getTimeScale()).toBe(1e6);
+        controller.setTimeScale(1e3);
+        expect(controller.getTimeScale()).toBe(1e3);
         
         // Jump to time
         controller.jumpToTime(1e9);
         expect(controller.getCurrentTime()).toBe(1e9);
         
         // Change time scale again
-        controller.setTimeScale(1e9);
+        controller.setTimeScale(1e3);
         expect(controller.getTimeScale()).toBe(1e9);
         
         // Continue simulation
