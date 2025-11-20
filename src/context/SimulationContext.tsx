@@ -44,7 +44,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({ children
   const [system, setSystem] = useState<StarSystem | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [state, setState] = useState<SimulationState>(SimulationState.STOPPED);
-  const [timeScale, setTimeScaleState] = useState(1e6); // Default: 1 million years per second
+  const [timeScale, setTimeScaleState] = useState(100); // Default: 100x timescale (max is 1000x)
   const [error, setError] = useState<string | null>(null);
 
   const updateState = useCallback(() => {
