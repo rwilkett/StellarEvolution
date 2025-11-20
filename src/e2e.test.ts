@@ -721,13 +721,7 @@ describe('End-to-End Simulation Workflows', () => {
     });
 
     it('should track evolution phases correctly', () => {
-      const cloudParams: CloudParameters = {
-        mass: 5.0, // 5 solar masses
-        metallicity: 1.0,
-        angularMomentum: 1e42,
-      };
 
-      const system = controller.initializeSimulation(cloudParams);
 
       // Check at different times
       const times = [0, 1e8, 5e8, 1e9];
@@ -783,8 +777,6 @@ describe('End-to-End Simulation Workflows', () => {
       const system = controller.initializeSimulation(cloudParams);
       
       if (system.planets.length > 0) {
-        const initialPlanet = system.planets[0];
-        const initialPosition = { ...initialPlanet.position };
 
         controller.updateSimulation(1e6); // 1 million years
 
@@ -984,8 +976,8 @@ describe('End-to-End Simulation Workflows', () => {
       expect(validation.errors!.length).toBeGreaterThan(0);
       
       validation.errors!.forEach(error => {
-        expect(error.message).toBeDefined();
-        expect(error.message.length).toBeGreaterThan(0);
+        expect(error).toBeDefined();
+        expect(error.length).toBeGreaterThan(0);
       });
     });
 
