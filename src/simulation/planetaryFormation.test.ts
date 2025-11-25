@@ -16,6 +16,10 @@ import {
 } from './planetaryFormation';
 import { createStar } from './stellarEvolution';
 import { PlanetComposition } from '../types/core';
+import { 
+  applyMagneticBraking,
+  calculateDiskProperties 
+} from '../physics/planetaryFormation';
 
 describe('Planetary Formation Module', () => {
   describe('createProtoplanetaryDisk', () => {
@@ -417,6 +421,150 @@ describe('Planetary Formation Module', () => {
         // Allow 1% tolerance for numerical precision
         expect(planet.orbitalPeriod).toBeCloseTo(expectedPeriod, 1);
       });
+    });
+  });
+
+  describe('Magnetic Braking Effects', () => {
+    it('should reduce disk radius with stronger magnetic field', () => {
+      const baseRadius = 100; // AU
+      const weakField = 10; // μG (reference field)
+      const strongField = 100; // μG
+      
+      const radiusWeak = applyMagneticBraking(baseRadius, weakField);
+      const radiusStrong = applyMagneticBraking(baseRadius, strongField);
+      
+      // Stronger field should reduce radius more
+      expect(radiusStrong).toBeLessThan(radiusWeak);
+      expect(radiusStrong).toBeLessThan(baseRadius);
+    });
+
+    it('should apply magnetic braking with correct power law', () => {
+      const baseRadius = 100; // AU
+      const testField = 40; // μG (4x reference of 10 μG)
+      
+      const reducedRadius = applyMagneticBraking(baseRadius, testField);
+      
+      // With α = 0.7, reduction factor should be (40/10)^(-0.7) ≈ 0.38
+      const expectedFactor = Math.pow(4, -0.7);
+      const expectedRadius = baseRadius * expectedFactor;
+      
+      expect(reducedRadius).toBeCloseTo(expectedRadius, 0);
+    });
+
+    it('should keep disk radius within physical bounds', () => {
+      const baseRadius = 100; // AU
+      const veryStrongField = 10000; // μG (very strong)
+      
+      const reducedRadius = applyMagneticBraking(baseRadius, veryStrongField);
+      
+      // Should not go below 10 AU
+      expect(reducedRadius).toBeGreaterThanOrEqual(10);
+      expect(reducedRadius).toBeLessThanOrEqual(1000);
+    });
+
+    it('should not exceed maximum disk radius', () => {
+      const largeBaseRadius = 2000; // AU (very large)
+      const weakField = 1; // μG (very weak)
+      
+      const radius = applyMagneticBraking(largeBaseRadius, weakField);
+      
+      // Should be capped at 1000 AU
+      expect(radius).toBeLessThanOrEqual(1000);
+    });
+
+    it('should calculate disk properties with magnetic braking', () => {
+      const star = createStar(1.0, 1.0);
+      const magneticField = 50; // μG
+      
+      const disk = calculateDiskProperties(
+        star.id,
+        star.mass,
+        star.luminosity,
+        star.metallicity,
+        magneticField
+      );
+      
+      // Should have magnetic braking factor
+      expect(disk.magneticBrakingFactor).toBeDefined();
+      expect(disk.magneticBrakingFactor).toBeGreaterThan(0);
+      expect(disk.magneticBrakingFactor).toBeLessThanOrEqual(1);
+      
+      // Outer radius should be reduced compared to no magnetic field
+      const diskNoField = calculateDiskProperties(
+        star.id,
+        star.mass,
+        star.luminosity,
+        star.metallicity
+      );
+      
+      expect(disk.outerRadius).toBeLessThan(diskNoField.outerRadius);
+    });
+
+    it('should produce smaller disks with stronger magnetic fields', () => {
+      const star = createStar(1.0, 1.0);
+      
+      const diskWeakField = calculateDiskProperties(
+        star.id,
+        star.mass,
+        star.luminosity,
+        star.metallicity,
+        10 // μG
+      );
+      
+      const diskStrongField = calculateDiskProperties(
+        star.id,
+        star.mass,
+        star.luminosity,
+        star.metallicity,
+        100 // μG
+      );
+      
+      // Stronger field should produce smaller disk
+      expect(diskStrongField.outerRadius).toBeLessThan(diskWeakField.outerRadius);
+      expect(diskStrongField.magneticBrakingFactor).toBeLessThan(diskWeakField.magneticBrakingFactor!);
+    });
+
+    it('should maintain disk radii within physical bounds with magnetic braking', () => {
+      const star = createStar(1.0, 1.0);
+      const veryStrongField = 1000; // μG
+      
+      const disk = calculateDiskProperties(
+        star.id,
+        star.mass,
+        star.luminosity,
+        star.metallicity,
+        veryStrongField
+      );
+      
+      // Even with very strong field, disk should be within bounds
+      expect(disk.outerRadius).toBeGreaterThanOrEqual(10);
+      expect(disk.outerRadius).toBeLessThanOrEqual(1000);
+      expect(disk.innerRadius).toBeLessThan(disk.outerRadius);
+    });
+
+    it('should calculate magnetic braking factor correctly', () => {
+      const star = createStar(1.0, 1.0);
+      const magneticField = 50; // μG
+      
+      const diskWithField = calculateDiskProperties(
+        star.id,
+        star.mass,
+        star.luminosity,
+        star.metallicity,
+        magneticField
+      );
+      
+      const diskWithoutField = calculateDiskProperties(
+        star.id,
+        star.mass,
+        star.luminosity,
+        star.metallicity
+      );
+      
+      // Braking factor should be ratio of reduced to base radius
+      const expectedFactor = diskWithField.outerRadius / diskWithoutField.outerRadius;
+      
+      expect(diskWithField.magneticBrakingFactor).toBeCloseTo(expectedFactor, 2);
     });
   });
 });

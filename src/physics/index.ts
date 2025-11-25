@@ -39,4 +39,16 @@ export {
   generatePlanetOrbitalDistances,
   canFormPlanets,
   calculatePlanetRadius,
+  applyMagneticBraking,
 } from './planetaryFormation';
+
+// Derived cloud properties
+export {
+  calculateDensity,
+  calculateVirialParameter,
+  calculateJeansMass,
+  calculateCollapseTimescale,
+  calculateTurbulentJeansLength,
+  calculateMagneticFluxToMassRatio,
+  calculateDerivedProperties,
+} from './derivedCloudProperties';

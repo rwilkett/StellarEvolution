@@ -117,6 +117,142 @@ export function validateAngularMomentum(angularMomentum: number): ValidationResu
 }
 
 /**
+ * Validate temperature input
+ * @param temperature - Temperature in Kelvin
+ * @returns Validation result with error messages if invalid
+ */
+export function validateTemperature(temperature: number): ValidationResult {
+  const errors: string[] = [];
+  
+  if (typeof temperature !== 'number' || isNaN(temperature)) {
+    errors.push('Temperature must be a valid number');
+    return { isValid: false, errors };
+  }
+  
+  if (!isFinite(temperature)) {
+    errors.push('Temperature must be a finite number');
+    return { isValid: false, errors };
+  }
+  
+  const { min, max, unit } = VALIDATION_RANGES.TEMPERATURE;
+  
+  if (temperature < min) {
+    errors.push(`Temperature must be at least ${min} ${unit} (provided: ${temperature} ${unit})`);
+  }
+  
+  if (temperature > max) {
+    errors.push(`Temperature must not exceed ${max} ${unit} (provided: ${temperature} ${unit})`);
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Validate radius input
+ * @param radius - Radius in parsecs
+ * @returns Validation result with error messages if invalid
+ */
+export function validateRadius(radius: number): ValidationResult {
+  const errors: string[] = [];
+  
+  if (typeof radius !== 'number' || isNaN(radius)) {
+    errors.push('Radius must be a valid number');
+    return { isValid: false, errors };
+  }
+  
+  if (!isFinite(radius)) {
+    errors.push('Radius must be a finite number');
+    return { isValid: false, errors };
+  }
+  
+  const { min, max, unit } = VALIDATION_RANGES.RADIUS;
+  
+  if (radius < min) {
+    errors.push(`Radius must be at least ${min} ${unit} (provided: ${radius} ${unit})`);
+  }
+  
+  if (radius > max) {
+    errors.push(`Radius must not exceed ${max} ${unit} (provided: ${radius} ${unit})`);
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Validate turbulence velocity input
+ * @param turbulenceVelocity - Turbulence velocity in km/s
+ * @returns Validation result with error messages if invalid
+ */
+export function validateTurbulenceVelocity(turbulenceVelocity: number): ValidationResult {
+  const errors: string[] = [];
+  
+  if (typeof turbulenceVelocity !== 'number' || isNaN(turbulenceVelocity)) {
+    errors.push('Turbulence velocity must be a valid number');
+    return { isValid: false, errors };
+  }
+  
+  if (!isFinite(turbulenceVelocity)) {
+    errors.push('Turbulence velocity must be a finite number');
+    return { isValid: false, errors };
+  }
+  
+  const { min, max, unit } = VALIDATION_RANGES.TURBULENCE_VELOCITY;
+  
+  if (turbulenceVelocity < min) {
+    errors.push(`Turbulence velocity must be at least ${min} ${unit} (provided: ${turbulenceVelocity} ${unit})`);
+  }
+  
+  if (turbulenceVelocity > max) {
+    errors.push(`Turbulence velocity must not exceed ${max} ${unit} (provided: ${turbulenceVelocity} ${unit})`);
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Validate magnetic field strength input
+ * @param magneticFieldStrength - Magnetic field strength in microgauss (μG)
+ * @returns Validation result with error messages if invalid
+ */
+export function validateMagneticFieldStrength(magneticFieldStrength: number): ValidationResult {
+  const errors: string[] = [];
+  
+  if (typeof magneticFieldStrength !== 'number' || isNaN(magneticFieldStrength)) {
+    errors.push('Magnetic field strength must be a valid number');
+    return { isValid: false, errors };
+  }
+  
+  if (!isFinite(magneticFieldStrength)) {
+    errors.push('Magnetic field strength must be a finite number');
+    return { isValid: false, errors };
+  }
+  
+  const { min, max, unit } = VALIDATION_RANGES.MAGNETIC_FIELD_STRENGTH;
+  
+  if (magneticFieldStrength < min) {
+    errors.push(`Magnetic field strength must be at least ${min} ${unit} (provided: ${magneticFieldStrength} ${unit})`);
+  }
+  
+  if (magneticFieldStrength > max) {
+    errors.push(`Magnetic field strength must not exceed ${max} ${unit} (provided: ${magneticFieldStrength} ${unit})`);
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
  * Validate complete cloud parameters
  * @param params - Cloud parameters to validate
  * @returns Validation result with all error messages
@@ -140,6 +276,38 @@ export function validateCloudParameters(params: CloudParameters): ValidationResu
   const angularMomentumValidation = validateAngularMomentum(params.angularMomentum);
   if (!angularMomentumValidation.isValid) {
     errors.push(...angularMomentumValidation.errors);
+  }
+  
+  // Validate temperature (if provided)
+  if (params.temperature !== undefined) {
+    const temperatureValidation = validateTemperature(params.temperature);
+    if (!temperatureValidation.isValid) {
+      errors.push(...temperatureValidation.errors);
+    }
+  }
+  
+  // Validate radius (if provided)
+  if (params.radius !== undefined) {
+    const radiusValidation = validateRadius(params.radius);
+    if (!radiusValidation.isValid) {
+      errors.push(...radiusValidation.errors);
+    }
+  }
+  
+  // Validate turbulence velocity (if provided)
+  if (params.turbulenceVelocity !== undefined) {
+    const turbulenceValidation = validateTurbulenceVelocity(params.turbulenceVelocity);
+    if (!turbulenceValidation.isValid) {
+      errors.push(...turbulenceValidation.errors);
+    }
+  }
+  
+  // Validate magnetic field strength (if provided)
+  if (params.magneticFieldStrength !== undefined) {
+    const magneticFieldValidation = validateMagneticFieldStrength(params.magneticFieldStrength);
+    if (!magneticFieldValidation.isValid) {
+      errors.push(...magneticFieldValidation.errors);
+    }
   }
   
   return {
@@ -238,6 +406,26 @@ export function getValidationRanges() {
       min: VALIDATION_RANGES.ANGULAR_MOMENTUM.min,
       max: VALIDATION_RANGES.ANGULAR_MOMENTUM.max,
       unit: VALIDATION_RANGES.ANGULAR_MOMENTUM.unit
+    },
+    temperature: {
+      min: VALIDATION_RANGES.TEMPERATURE.min,
+      max: VALIDATION_RANGES.TEMPERATURE.max,
+      unit: VALIDATION_RANGES.TEMPERATURE.unit
+    },
+    radius: {
+      min: VALIDATION_RANGES.RADIUS.min,
+      max: VALIDATION_RANGES.RADIUS.max,
+      unit: VALIDATION_RANGES.RADIUS.unit
+    },
+    turbulenceVelocity: {
+      min: VALIDATION_RANGES.TURBULENCE_VELOCITY.min,
+      max: VALIDATION_RANGES.TURBULENCE_VELOCITY.max,
+      unit: VALIDATION_RANGES.TURBULENCE_VELOCITY.unit
+    },
+    magneticFieldStrength: {
+      min: VALIDATION_RANGES.MAGNETIC_FIELD_STRENGTH.min,
+      max: VALIDATION_RANGES.MAGNETIC_FIELD_STRENGTH.max,
+      unit: VALIDATION_RANGES.MAGNETIC_FIELD_STRENGTH.unit
     },
     timeScale: {
       min: VALIDATION_RANGES.TIME_SCALE.min,

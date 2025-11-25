@@ -3,91 +3,93 @@
  * Handles the collapse of interstellar clouds and fragmentation into stars
  */
 
-import { CloudParameters } from '../types/core';
-import { PHYSICS_CONSTANTS, VALIDATION_RANGES } from '../constants/physics';
+import { CloudParameters, DerivedCloudProperties } from '../types/core';
+import { PHYSICS_CONSTANTS, VALIDATION_RANGES, CLOUD_PARAMETER_DEFAULTS } from '../constants/physics';
 
 /**
- * Calculate the Jeans mass for a cloud
- * The Jeans mass is the critical mass above which a cloud will collapse under its own gravity
+ * Calculate star formation efficiency based on virial parameter
  * 
- * Simplified formula: M_J ≈ (T^1.5) / (ρ^0.5)
- * For this simulation, we use a normalized approach based on cloud parameters
- * 
- * @param cloudParams - Cloud parameters
- * @returns Jeans mass in solar masses
+ * @param virialParameter - Virial parameter (dimensionless)
+ * @returns Star formation efficiency (0-1)
  */
-export function calculateJeansMass(cloudParams: CloudParameters): number {
-  // Simplified Jeans mass calculation
-  // In reality, this depends on temperature and density
-  // For simulation purposes, we assume the cloud is near the Jeans instability
-  // and use the cloud mass as a reference
+function calculateStarFormationEfficiency(virialParameter: number): number {
+  // Star formation efficiency depends on how bound the cloud is
+  // α_vir < 1: High efficiency (30-50%)
+  // α_vir ≈ 1-2: Moderate efficiency (10-30%)
+  // α_vir > 2: Low efficiency (1-10%)
   
-  // Typical molecular cloud temperature: ~10-20 K
-  const temperature = 15; // Kelvin
-  
-  // Estimate density from mass and typical cloud size
-  // Typical molecular cloud: ~10-100 pc diameter
-  const typicalCloudRadius = 10 * PHYSICS_CONSTANTS.PARSEC; // meters
-  const volume = (4/3) * Math.PI * Math.pow(typicalCloudRadius, 3);
-  const density = (cloudParams.mass * PHYSICS_CONSTANTS.SOLAR_MASS) / volume;
-  
-  // Jeans mass formula (simplified)
-  // M_J ∝ T^(3/2) / sqrt(ρ)
-  const jeansMass = PHYSICS_CONSTANTS.JEANS_MASS_COEFFICIENT * 
-                    Math.pow(temperature, 1.5) / Math.sqrt(density);
-  
-  // Convert to solar masses
-  return jeansMass / PHYSICS_CONSTANTS.SOLAR_MASS;
+  if (virialParameter < 1) {
+    // Strongly bound: high efficiency
+    return 0.3 + (1 - virialParameter) * 0.2; // 30-50%
+  } else if (virialParameter < 2) {
+    // Marginally bound: moderate efficiency
+    return 0.1 + (2 - virialParameter) * 0.2; // 10-30%
+  } else {
+    // Unbound or weakly bound: low efficiency
+    return Math.max(0.01, 0.1 * Math.exp(-(virialParameter - 2))); // 1-10%
+  }
 }
 
 /**
  * Determine if a cloud will fragment into multiple stars
- * Fragmentation depends on angular momentum and turbulence
+ * Fragmentation depends on angular momentum, turbulence, and Jeans mass
  * 
  * @param cloudParams - Cloud parameters
+ * @param derived - Derived cloud properties
  * @returns Number of stars that will form
  */
-export function determineFragmentation(cloudParams: CloudParameters): number {
+export function determineFragmentation(
+  cloudParams: CloudParameters,
+  derived: DerivedCloudProperties
+): number {
   const { mass, angularMomentum } = cloudParams;
+  const { jeansMass, turbulentJeansLength, virialParameter } = derived;
+  
+  // Apply defaults for optional parameters
+  const radius = cloudParams.radius ?? CLOUD_PARAMETER_DEFAULTS.RADIUS;
+  const turbulenceVelocity = cloudParams.turbulenceVelocity ?? CLOUD_PARAMETER_DEFAULTS.TURBULENCE_VELOCITY;
   
   // Calculate normalized angular momentum
-  // Higher angular momentum leads to more fragmentation
   const typicalRadius = 10 * PHYSICS_CONSTANTS.PARSEC;
-  const typicalVelocity = 1000; // m/s (typical molecular cloud velocity dispersion)
+  const typicalVelocity = 1000; // m/s
   const typicalAngularMomentum = mass * PHYSICS_CONSTANTS.SOLAR_MASS * 
                                   typicalRadius * typicalVelocity;
   
   const normalizedAngularMomentum = angularMomentum / typicalAngularMomentum;
   
-  // Determine number of fragments based on mass and angular momentum
-  // Low mass clouds typically form single stars
-  // High mass clouds with high angular momentum fragment more
+  // Calculate turbulence factor (higher turbulence increases fragmentation)
+  const turbulenceFactor = 1 + (turbulenceVelocity - 1) / 5; // Normalized around 1 km/s
   
-  if (mass < 1.0) {
-    // Low mass clouds: single star or binary
-    if (normalizedAngularMomentum > 0.5) {
-      return 2; // Binary system
-    }
-    return 1; // Single star
-  } else if (mass < 10.0) {
-    // Medium mass clouds: 1-3 stars
-    if (normalizedAngularMomentum > 1.0) {
-      return 3;
-    } else if (normalizedAngularMomentum > 0.5) {
-      return 2;
-    }
-    return 1;
-  } else if (mass < 100.0) {
-    // High mass clouds: 2-5 stars
-    const baseFragments = 2;
-    const additionalFragments = Math.floor(normalizedAngularMomentum * 2);
-    return Math.min(baseFragments + additionalFragments, 5);
-  } else {
-    // Very high mass clouds: 3-10 stars
-    const baseFragments = 3;
-    const additionalFragments = Math.floor(normalizedAngularMomentum * 3);
-    return Math.min(baseFragments + additionalFragments, 10);
+  // Calculate mass ratio (how many Jeans masses fit in the cloud)
+  const massRatio = mass / jeansMass;
+  
+  // Base number of fragments from mass ratio and turbulence
+  // More Jeans masses and higher turbulence lead to more fragments
+  let baseFragments = Math.floor(massRatio * turbulenceFactor);
+  
+  // Adjust based on virial parameter
+  // Unbound clouds (α_vir > 2) fragment less efficiently
+  if (virialParameter > 2) {
+    baseFragments = Math.floor(baseFragments * 0.5);
   }
+  
+  // Adjust based on angular momentum
+  const angularMomentumBonus = Math.floor(normalizedAngularMomentum * 2);
+  baseFragments += angularMomentumBonus;
+  
+  // Ensure at least 1 fragment if cloud is bound
+  if (virialParameter < 2 && baseFragments < 1) {
+    baseFragments = 1;
+  }
+  
+  // Cap maximum fragments based on cloud size and turbulent Jeans length
+  // Maximum fragments = cloud volume / fragment volume
+  const maxFragments = Math.floor(Math.pow(radius / turbulentJeansLength, 3));
+  
+  // Apply physical limits
+  const finalFragments = Math.max(1, Math.min(baseFragments, maxFragments, 10));
+  
+  return finalFragments;
 }
 
 /**
@@ -99,12 +101,17 @@ export function determineFragmentation(cloudParams: CloudParameters): number {
  * 
  * @param totalMass - Total mass to distribute in solar masses
  * @param numStars - Number of stars to create
+ * @param efficiency - Star formation efficiency (0-1)
  * @returns Array of stellar masses in solar masses
  */
-export function calculateMassDistribution(totalMass: number, numStars: number): number[] {
+export function calculateMassDistribution(
+  totalMass: number,
+  numStars: number,
+  efficiency: number = 0.3
+): number[] {
   if (numStars === 1) {
-    // Single star gets all the mass (accounting for some loss)
-    return [totalMass * 0.3]; // ~30% efficiency typical for star formation
+    // Single star gets all the mass (accounting for efficiency)
+    return [totalMass * efficiency];
   }
   
   // Generate random masses following IMF
@@ -136,7 +143,6 @@ export function calculateMassDistribution(totalMass: number, numStars: number): 
   }
   
   // Normalize masses to match total available mass (with star formation efficiency)
-  const efficiency = 0.3; // 30% of cloud mass becomes stars
   const availableMass = totalMass * efficiency;
   const scaleFactor = availableMass / totalRawMass;
   
@@ -155,16 +161,22 @@ export function calculateMassDistribution(totalMass: number, numStars: number): 
 }
 
 /**
- * Determine if a cloud will collapse based on Jeans criterion
+ * Determine if a cloud will collapse based on Jeans criterion and virial parameter
  * 
  * @param cloudParams - Cloud parameters
+ * @param derived - Derived cloud properties
  * @returns True if cloud will collapse
  */
-export function willCloudCollapse(cloudParams: CloudParameters): boolean {
-  const jeansMass = calculateJeansMass(cloudParams);
+export function willCloudCollapse(
+  cloudParams: CloudParameters,
+  derived: DerivedCloudProperties
+): boolean {
+  const { jeansMass, isBound } = derived;
   
-  // Cloud will collapse if its mass exceeds the Jeans mass
-  return cloudParams.mass > jeansMass;
+  // Cloud will collapse if:
+  // 1. Its mass exceeds the Jeans mass (gravitational instability)
+  // 2. It is gravitationally bound (virial parameter < 2)
+  return cloudParams.mass > jeansMass && isBound;
 }
 
 /**
@@ -172,16 +184,20 @@ export function willCloudCollapse(cloudParams: CloudParameters): boolean {
  * Combines collapse criterion and fragmentation determination
  * 
  * @param cloudParams - Cloud parameters
+ * @param derived - Derived cloud properties
  * @returns Number of stars that will form (0 if cloud doesn't collapse)
  */
-export function calculateNumberOfStars(cloudParams: CloudParameters): number {
+export function calculateNumberOfStars(
+  cloudParams: CloudParameters,
+  derived: DerivedCloudProperties
+): number {
   // Check if cloud will collapse
-  if (!willCloudCollapse(cloudParams)) {
+  if (!willCloudCollapse(cloudParams, derived)) {
     return 0;
   }
   
   // Determine fragmentation
-  return determineFragmentation(cloudParams);
+  return determineFragmentation(cloudParams, derived);
 }
 
 /**
@@ -357,6 +373,7 @@ export function configureMultipleStarSystem(
  * Main function that orchestrates cloud collapse, fragmentation, and star generation
  * 
  * @param cloudParams - Initial cloud parameters
+ * @param derivedProperties - Pre-calculated derived cloud properties (optional)
  * @returns Complete star system with all stars configured
  * @throws SimulationError if cloud cannot form stars or parameters are extreme
  */
@@ -366,22 +383,34 @@ import {
   errorLogger,
   checkNumericalStability,
 } from '../validation/errorHandling';
+import { calculateDerivedProperties } from '../physics/derivedCloudProperties';
 
-export function generateStarSystemFromCloud(cloudParams: CloudParameters): StarSystem {
+export function generateStarSystemFromCloud(
+  cloudParams: CloudParameters,
+  derivedProperties?: DerivedCloudProperties
+): StarSystem {
   try {
     // Check for numerical stability
     checkNumericalStability(cloudParams.mass, 'cloud mass');
     checkNumericalStability(cloudParams.metallicity, 'metallicity');
     checkNumericalStability(cloudParams.angularMomentum, 'angular momentum');
     
-    // Calculate number of stars
-    const numStars = calculateNumberOfStars(cloudParams);
+    // Calculate derived properties if not provided
+    const derived = derivedProperties ?? calculateDerivedProperties(cloudParams);
+    
+    // Calculate number of stars using derived properties
+    const numStars = calculateNumberOfStars(cloudParams, derived);
     
     if (numStars === 0) {
       const error = new SimulationError(
         SimulationErrorType.INSUFFICIENT_MASS,
-        'Cloud mass is below Jeans mass threshold - no stars will form',
-        { cloudMass: cloudParams.mass, jeansMass: calculateJeansMass(cloudParams) },
+        'Cloud cannot collapse - either mass is below Jeans mass or cloud is unbound',
+        { 
+          cloudMass: cloudParams.mass, 
+          jeansMass: derived.jeansMass,
+          virialParameter: derived.virialParameter,
+          isBound: derived.isBound
+        },
         false
       );
       errorLogger.logError(error);
@@ -400,8 +429,11 @@ export function generateStarSystemFromCloud(cloudParams: CloudParameters): StarS
       );
     }
     
-    // Calculate mass distribution
-    const stellarMasses = calculateMassDistribution(cloudParams.mass, numStars);
+    // Calculate star formation efficiency from virial parameter
+    const efficiency = calculateStarFormationEfficiency(derived.virialParameter);
+    
+    // Calculate mass distribution with efficiency
+    const stellarMasses = calculateMassDistribution(cloudParams.mass, numStars, efficiency);
     
     // Validate stellar masses
     for (const mass of stellarMasses) {
@@ -427,6 +459,7 @@ export function generateStarSystemFromCloud(cloudParams: CloudParameters): StarS
       planets: [], // Planets will be added later by planetary formation module
       age: 0,
       initialCloudParameters: cloudParams,
+      derivedCloudProperties: derived,
     };
   } catch (error) {
     if (error instanceof SimulationError) {

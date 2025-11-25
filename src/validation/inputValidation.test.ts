@@ -8,6 +8,10 @@ import {
   validateMass,
   validateMetallicity,
   validateAngularMomentum,
+  validateTemperature,
+  validateRadius,
+  validateTurbulenceVelocity,
+  validateMagneticFieldStrength,
   validateCloudParameters,
   validateTimeScale,
   validateSimulationTime,
@@ -208,12 +212,361 @@ describe('Input Validation', () => {
     });
   });
 
+  describe('validateTemperature', () => {
+    it('should accept valid temperature values', () => {
+      const result = validateTemperature(20);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept minimum valid temperature', () => {
+      const result = validateTemperature(5);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept maximum valid temperature', () => {
+      const result = validateTemperature(100);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept mid-range temperature values', () => {
+      const result = validateTemperature(50);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should reject temperature below minimum', () => {
+      const result = validateTemperature(3);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('at least');
+      expect(result.errors[0]).toContain('5');
+      expect(result.errors[0]).toContain('K');
+    });
+
+    it('should reject temperature above maximum', () => {
+      const result = validateTemperature(150);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('not exceed');
+      expect(result.errors[0]).toContain('100');
+      expect(result.errors[0]).toContain('K');
+    });
+
+    it('should reject NaN temperature with clear error message', () => {
+      const result = validateTemperature(NaN);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('valid number');
+    });
+
+    it('should reject Infinity temperature', () => {
+      const result = validateTemperature(Infinity);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('finite');
+    });
+
+    it('should reject negative temperature', () => {
+      const result = validateTemperature(-10);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should provide helpful error message with actual value', () => {
+      const result = validateTemperature(3);
+      expect(result.errors[0]).toContain('3');
+    });
+
+    it('should reject boundary value just below minimum', () => {
+      const result = validateTemperature(4.9);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('at least');
+    });
+
+    it('should reject boundary value just above maximum', () => {
+      const result = validateTemperature(100.1);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('not exceed');
+    });
+  });
+
+  describe('validateRadius', () => {
+    it('should accept valid radius values', () => {
+      const result = validateRadius(10);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept minimum valid radius', () => {
+      const result = validateRadius(0.1);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept maximum valid radius', () => {
+      const result = validateRadius(200);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept mid-range radius values', () => {
+      const result = validateRadius(50);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should reject radius below minimum', () => {
+      const result = validateRadius(0.05);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('at least');
+      expect(result.errors[0]).toContain('0.1');
+      expect(result.errors[0]).toContain('pc');
+    });
+
+    it('should reject radius above maximum', () => {
+      const result = validateRadius(300);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('not exceed');
+      expect(result.errors[0]).toContain('200');
+      expect(result.errors[0]).toContain('pc');
+    });
+
+    it('should reject NaN radius with clear error message', () => {
+      const result = validateRadius(NaN);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('valid number');
+    });
+
+    it('should reject Infinity radius', () => {
+      const result = validateRadius(Infinity);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('finite');
+    });
+
+    it('should reject negative radius', () => {
+      const result = validateRadius(-5);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should reject zero radius', () => {
+      const result = validateRadius(0);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should provide helpful error message with actual value', () => {
+      const result = validateRadius(0.05);
+      expect(result.errors[0]).toContain('0.05');
+    });
+
+    it('should reject boundary value just below minimum', () => {
+      const result = validateRadius(0.09);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('at least');
+    });
+
+    it('should reject boundary value just above maximum', () => {
+      const result = validateRadius(200.1);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('not exceed');
+    });
+  });
+
+  describe('validateTurbulenceVelocity', () => {
+    it('should accept valid turbulence velocity values', () => {
+      const result = validateTurbulenceVelocity(1);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept minimum valid turbulence velocity', () => {
+      const result = validateTurbulenceVelocity(0.1);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept maximum valid turbulence velocity', () => {
+      const result = validateTurbulenceVelocity(10);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept mid-range turbulence velocity values', () => {
+      const result = validateTurbulenceVelocity(5);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should reject turbulence velocity below minimum', () => {
+      const result = validateTurbulenceVelocity(0.05);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('at least');
+      expect(result.errors[0]).toContain('0.1');
+      expect(result.errors[0]).toContain('km/s');
+    });
+
+    it('should reject turbulence velocity above maximum', () => {
+      const result = validateTurbulenceVelocity(15);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('not exceed');
+      expect(result.errors[0]).toContain('10');
+      expect(result.errors[0]).toContain('km/s');
+    });
+
+    it('should reject NaN turbulence velocity with clear error message', () => {
+      const result = validateTurbulenceVelocity(NaN);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('valid number');
+    });
+
+    it('should reject Infinity turbulence velocity', () => {
+      const result = validateTurbulenceVelocity(Infinity);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('finite');
+    });
+
+    it('should reject negative turbulence velocity', () => {
+      const result = validateTurbulenceVelocity(-1);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should reject zero turbulence velocity', () => {
+      const result = validateTurbulenceVelocity(0);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should provide helpful error message with actual value', () => {
+      const result = validateTurbulenceVelocity(0.05);
+      expect(result.errors[0]).toContain('0.05');
+    });
+
+    it('should reject boundary value just below minimum', () => {
+      const result = validateTurbulenceVelocity(0.09);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('at least');
+    });
+
+    it('should reject boundary value just above maximum', () => {
+      const result = validateTurbulenceVelocity(10.1);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('not exceed');
+    });
+  });
+
+  describe('validateMagneticFieldStrength', () => {
+    it('should accept valid magnetic field strength values', () => {
+      const result = validateMagneticFieldStrength(10);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept minimum valid magnetic field strength', () => {
+      const result = validateMagneticFieldStrength(1);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept maximum valid magnetic field strength', () => {
+      const result = validateMagneticFieldStrength(1000);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept mid-range magnetic field strength values', () => {
+      const result = validateMagneticFieldStrength(100);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should reject magnetic field strength below minimum', () => {
+      const result = validateMagneticFieldStrength(0.5);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('at least');
+      expect(result.errors[0]).toContain('1');
+      expect(result.errors[0]).toContain('μG');
+    });
+
+    it('should reject magnetic field strength above maximum', () => {
+      const result = validateMagneticFieldStrength(1500);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('not exceed');
+      expect(result.errors[0]).toContain('1000');
+      expect(result.errors[0]).toContain('μG');
+    });
+
+    it('should reject NaN magnetic field strength with clear error message', () => {
+      const result = validateMagneticFieldStrength(NaN);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('valid number');
+    });
+
+    it('should reject Infinity magnetic field strength', () => {
+      const result = validateMagneticFieldStrength(Infinity);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('finite');
+    });
+
+    it('should reject negative magnetic field strength', () => {
+      const result = validateMagneticFieldStrength(-10);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should reject zero magnetic field strength', () => {
+      const result = validateMagneticFieldStrength(0);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should provide helpful error message with actual value', () => {
+      const result = validateMagneticFieldStrength(0.5);
+      expect(result.errors[0]).toContain('0.5');
+    });
+
+    it('should reject boundary value just below minimum', () => {
+      const result = validateMagneticFieldStrength(0.9);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('at least');
+    });
+
+    it('should reject boundary value just above maximum', () => {
+      const result = validateMagneticFieldStrength(1000.1);
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('not exceed');
+    });
+  });
+
   describe('validateCloudParameters', () => {
     it('should accept valid cloud parameters', () => {
       const params = {
         mass: 10,
         metallicity: 1.0,
         angularMomentum: 1e45,
+      };
+      const result = validateCloudParameters(params);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should accept valid cloud parameters with enhanced properties', () => {
+      const params = {
+        mass: 10,
+        metallicity: 1.0,
+        angularMomentum: 1e45,
+        temperature: 20,
+        radius: 10,
+        turbulenceVelocity: 1,
+        magneticFieldStrength: 10,
       };
       const result = validateCloudParameters(params);
       expect(result.isValid).toBe(true);
@@ -231,6 +584,54 @@ describe('Input Validation', () => {
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
+    it('should reject invalid temperature', () => {
+      const params = {
+        mass: 10,
+        metallicity: 1.0,
+        angularMomentum: 1e45,
+        temperature: 3,
+      };
+      const result = validateCloudParameters(params);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some(e => e.includes('Temperature'))).toBe(true);
+    });
+
+    it('should reject invalid radius', () => {
+      const params = {
+        mass: 10,
+        metallicity: 1.0,
+        angularMomentum: 1e45,
+        radius: 0.05,
+      };
+      const result = validateCloudParameters(params);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some(e => e.includes('Radius'))).toBe(true);
+    });
+
+    it('should reject invalid turbulence velocity', () => {
+      const params = {
+        mass: 10,
+        metallicity: 1.0,
+        angularMomentum: 1e45,
+        turbulenceVelocity: 0.05,
+      };
+      const result = validateCloudParameters(params);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some(e => e.includes('Turbulence velocity'))).toBe(true);
+    });
+
+    it('should reject invalid magnetic field strength', () => {
+      const params = {
+        mass: 10,
+        metallicity: 1.0,
+        angularMomentum: 1e45,
+        magneticFieldStrength: 0.5,
+      };
+      const result = validateCloudParameters(params);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some(e => e.includes('Magnetic field strength'))).toBe(true);
+    });
+
     it('should collect multiple errors', () => {
       const params = {
         mass: 0.01,
@@ -240,6 +641,21 @@ describe('Input Validation', () => {
       const result = validateCloudParameters(params);
       expect(result.isValid).toBe(false);
       expect(result.errors.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should collect multiple errors from enhanced properties', () => {
+      const params = {
+        mass: 0.01,
+        metallicity: 10.0,
+        angularMomentum: -1,
+        temperature: 3,
+        radius: 0.05,
+        turbulenceVelocity: 15,
+        magneticFieldStrength: 1500,
+      };
+      const result = validateCloudParameters(params);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThanOrEqual(7);
     });
   });
 
@@ -357,6 +773,10 @@ describe('Input Validation', () => {
       expect(ranges).toHaveProperty('mass');
       expect(ranges).toHaveProperty('metallicity');
       expect(ranges).toHaveProperty('angularMomentum');
+      expect(ranges).toHaveProperty('temperature');
+      expect(ranges).toHaveProperty('radius');
+      expect(ranges).toHaveProperty('turbulenceVelocity');
+      expect(ranges).toHaveProperty('magneticFieldStrength');
       expect(ranges).toHaveProperty('timeScale');
       expect(ranges).toHaveProperty('simulationTime');
     });
@@ -366,6 +786,26 @@ describe('Input Validation', () => {
       expect(ranges.mass).toHaveProperty('min');
       expect(ranges.mass).toHaveProperty('max');
       expect(ranges.mass).toHaveProperty('unit');
+    });
+
+    it('should have correct ranges for enhanced properties', () => {
+      const ranges = getValidationRanges();
+      
+      expect(ranges.temperature.min).toBe(5);
+      expect(ranges.temperature.max).toBe(100);
+      expect(ranges.temperature.unit).toBe('K');
+      
+      expect(ranges.radius.min).toBe(0.1);
+      expect(ranges.radius.max).toBe(200);
+      expect(ranges.radius.unit).toBe('pc');
+      
+      expect(ranges.turbulenceVelocity.min).toBe(0.1);
+      expect(ranges.turbulenceVelocity.max).toBe(10);
+      expect(ranges.turbulenceVelocity.unit).toBe('km/s');
+      
+      expect(ranges.magneticFieldStrength.min).toBe(1);
+      expect(ranges.magneticFieldStrength.max).toBe(1000);
+      expect(ranges.magneticFieldStrength.unit).toBe('μG');
     });
   });
 });

@@ -3,7 +3,7 @@
  * Implements protoplanetary disk calculations and planet formation models
  */
 
-import { PLANET_FORMATION } from '../constants/physics';
+import { PLANET_FORMATION, CLOUD_PARAMETER_DEFAULTS } from '../constants/physics';
 import { ProtoplanetaryDisk, PlanetComposition } from '../types/core';
 
 /**
@@ -29,14 +29,46 @@ export function calculateDiskMass(
 }
 
 /**
+ * Apply magnetic braking to reduce disk radius
+ * 
+ * Magnetic fields remove angular momentum from the disk, reducing its size
+ * Formula: R_disk = R_disk,0 × (B/B_0)^(-α) where α ≈ 0.5-1.0
+ * 
+ * @param baseRadius - Base disk radius without magnetic effects in AU
+ * @param magneticFieldStrength - Magnetic field strength in microgauss (μG)
+ * @returns Reduced disk radius in AU
+ */
+export function applyMagneticBraking(
+  baseRadius: number,
+  magneticFieldStrength: number
+): number {
+  // Reference field strength (typical molecular cloud value)
+  const referenceField = CLOUD_PARAMETER_DEFAULTS.MAGNETIC_FIELD_STRENGTH; // 10 μG
+  
+  // Magnetic braking exponent (0.5-1.0, we use 0.7 as a middle value)
+  const alpha = 0.7;
+  
+  // Calculate reduction factor
+  const reductionFactor = Math.pow(magneticFieldStrength / referenceField, -alpha);
+  
+  // Apply reduction
+  const reducedRadius = baseRadius * reductionFactor;
+  
+  // Ensure disk radius stays within physical bounds (10-1000 AU)
+  return Math.max(10, Math.min(reducedRadius, 1000));
+}
+
+/**
  * Calculate protoplanetary disk extent (inner and outer radii)
  * @param stellarMass - Mass of the host star in solar masses
  * @param stellarLuminosity - Luminosity of the host star in solar luminosities
+ * @param magneticFieldStrength - Optional magnetic field strength in μG (for magnetic braking)
  * @returns Object with inner and outer radius in AU
  */
 export function calculateDiskExtent(
   stellarMass: number,
-  stellarLuminosity: number
+  stellarLuminosity: number,
+  magneticFieldStrength?: number
 ): { innerRadius: number; outerRadius: number } {
   // Inner radius is determined by dust sublimation temperature (~1500K)
   // Using simplified relation: r_inner ≈ 0.05 * sqrt(L) AU
@@ -44,7 +76,12 @@ export function calculateDiskExtent(
   
   // Outer radius scales with stellar mass
   // Typical disks extend to 30-100 AU for solar-mass stars
-  const outerRadius = 30 * Math.pow(stellarMass, 0.5);
+  let outerRadius = 30 * Math.pow(stellarMass, 0.5);
+  
+  // Apply magnetic braking if field strength is provided
+  if (magneticFieldStrength !== undefined) {
+    outerRadius = applyMagneticBraking(outerRadius, magneticFieldStrength);
+  }
   
   return { innerRadius, outerRadius };
 }
@@ -67,17 +104,32 @@ export function calculateSnowLine(stellarLuminosity: number): number {
  * @param stellarMass - Mass of the host star in solar masses
  * @param stellarLuminosity - Luminosity of the host star in solar luminosities
  * @param metallicity - Metallicity of the system relative to solar
+ * @param magneticFieldStrength - Optional magnetic field strength in μG
  * @returns ProtoplanetaryDisk object with all properties
  */
 export function calculateDiskProperties(
   starId: string,
   stellarMass: number,
   stellarLuminosity: number,
-  metallicity: number
+  metallicity: number,
+  magneticFieldStrength?: number
 ): ProtoplanetaryDisk {
   const mass = calculateDiskMass(stellarMass, metallicity);
-  const { innerRadius, outerRadius } = calculateDiskExtent(stellarMass, stellarLuminosity);
+  
+  // Calculate disk extent with magnetic braking if field strength provided
+  const baseExtent = calculateDiskExtent(stellarMass, stellarLuminosity);
+  const { innerRadius, outerRadius } = magneticFieldStrength !== undefined
+    ? calculateDiskExtent(stellarMass, stellarLuminosity, magneticFieldStrength)
+    : baseExtent;
+  
   const snowLine = calculateSnowLine(stellarLuminosity);
+  
+  // Calculate magnetic braking factor if field strength provided
+  let magneticBrakingFactor: number | undefined;
+  if (magneticFieldStrength !== undefined) {
+    // Braking factor is the ratio of reduced to base radius
+    magneticBrakingFactor = outerRadius / baseExtent.outerRadius;
+  }
   
   return {
     starId,
@@ -86,6 +138,7 @@ export function calculateDiskProperties(
     outerRadius,
     metallicity,
     snowLine,
+    magneticBrakingFactor,
   };
 }
 

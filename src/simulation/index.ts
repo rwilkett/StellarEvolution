@@ -5,7 +5,6 @@
 
 // Cloud Formation
 export {
-  calculateJeansMass,
   determineFragmentation,
   calculateMassDistribution,
   willCloudCollapse,

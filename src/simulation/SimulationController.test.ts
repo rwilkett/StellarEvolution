@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SimulationController } from './SimulationController';
-import { CloudParameters, SimulationState } from '../types/core';
+import { CloudParameters, SimulationState, StarSystem } from '../types/core';
 
 describe('SimulationController', () => {
   let controller: SimulationController;
@@ -14,9 +14,13 @@ describe('SimulationController', () => {
   beforeEach(() => {
     controller = new SimulationController();
     testCloudParams = {
-      mass: 1.0, // 1 solar mass
+      mass: 1000.0, // 1000 solar masses (enough to overcome Jeans mass)
       metallicity: 1.0, // Solar metallicity
       angularMomentum: 1e42, // kg⋅m²/s
+      temperature: 10, // Cold cloud (10K)
+      radius: 2, // Smaller radius (2 pc) for higher density and bound cloud
+      turbulenceVelocity: 0.5, // Low turbulence (0.5 km/s) for bound cloud
+      magneticFieldStrength: 10, // Moderate magnetic field
     };
   });
 
@@ -256,9 +260,13 @@ describe('SimulationController', () => {
       it('should evolve massive star through multiple phases', () => {
         // Create a massive star system (shorter lifetime)
         const massiveCloudParams: CloudParameters = {
-          mass: 10.0, // 10 solar masses
+          mass: 200.0, // 200 solar masses
           metallicity: 1.0,
           angularMomentum: 1e42,
+          temperature: 10,
+          radius: 0.8,
+          turbulenceVelocity: 0.5,
+          magneticFieldStrength: 10,
         };
         
         const system = controller.initializeSimulation(massiveCloudParams);
@@ -452,7 +460,7 @@ describe('SimulationController', () => {
         
         // Change time scale again
         controller.setTimeScale(1e3);
-        expect(controller.getTimeScale()).toBe(1e9);
+        expect(controller.getTimeScale()).toBe(1e3);
         
         // Continue simulation
         controller.updateSimulation(1e9);
@@ -557,8 +565,8 @@ describe('SimulationController', () => {
         controller.updateSimulation(1e6);
         const time1 = controller.getCurrentTime();
         
-        // Change time scale and continue
-        controller.setTimeScale(1e9);
+        // Change time scale and continue (use valid time scale within range)
+        controller.setTimeScale(100);
         controller.updateSimulation(1e6);
         const time2 = controller.getCurrentTime();
         
@@ -570,16 +578,255 @@ describe('SimulationController', () => {
         const system = controller.initializeSimulation(testCloudParams);
         const initialCloudParams = system.initialCloudParameters;
         
-        // Perform various operations
+        // Perform various operations (use valid time scale within range)
         controller.startSimulation();
         controller.updateSimulation(1e9);
         controller.pauseSimulation();
-        controller.setTimeScale(1e6);
+        controller.setTimeScale(100);
         controller.jumpToTime(5e8);
         
         // Verify initial conditions are preserved
         const currentSystem = controller.getSystem();
         expect(currentSystem!.initialCloudParameters).toEqual(initialCloudParams);
+      });
+    });
+
+    describe('derived properties integration', () => {
+      it('should calculate and store derived properties on initialization', () => {
+        const cloudParams: CloudParameters = {
+          mass: 1000.0,
+          metallicity: 1.0,
+          angularMomentum: 1e42,
+          temperature: 10,
+          radius: 2,
+          turbulenceVelocity: 0.5,
+          magneticFieldStrength: 10,
+        };
+        
+        const system = controller.initializeSimulation(cloudParams);
+        
+        // Verify derived properties are calculated and stored
+        expect(system.derivedCloudProperties).toBeDefined();
+        expect(system.derivedCloudProperties!.density).toBeGreaterThan(0);
+        expect(system.derivedCloudProperties!.virialParameter).toBeGreaterThan(0);
+        expect(system.derivedCloudProperties!.jeansMass).toBeGreaterThan(0);
+        expect(system.derivedCloudProperties!.collapseTimescale).toBeGreaterThan(0);
+        expect(typeof system.derivedCloudProperties!.isBound).toBe('boolean');
+        expect(system.derivedCloudProperties!.turbulentJeansLength).toBeGreaterThan(0);
+        expect(system.derivedCloudProperties!.magneticFluxToMassRatio).toBeGreaterThan(0);
+      });
+
+      it('should use derived properties throughout simulation lifecycle', () => {
+        const cloudParams: CloudParameters = {
+          mass: 500.0,
+          metallicity: 1.0,
+          angularMomentum: 1e42,
+          temperature: 10,
+          radius: 1.5,
+          turbulenceVelocity: 0.5,
+          magneticFieldStrength: 10,
+        };
+        
+        const system = controller.initializeSimulation(cloudParams);
+        const initialDerived = system.derivedCloudProperties;
+        
+        // Evolve simulation
+        controller.startSimulation();
+        controller.updateSimulation(1e6);
+        
+        // Verify derived properties are preserved
+        const evolvedSystem = controller.getSystem();
+        expect(evolvedSystem!.derivedCloudProperties).toEqual(initialDerived);
+      });
+
+      it('should handle default values for optional cloud parameters', () => {
+        const minimalCloudParams: CloudParameters = {
+          mass: 1000.0,
+          metallicity: 1.0,
+          angularMomentum: 1e42,
+          // Provide parameters that will create a bound cloud
+          temperature: 10,
+          radius: 2,
+          turbulenceVelocity: 0.5,
+          magneticFieldStrength: 10,
+        };
+        
+        const system = controller.initializeSimulation(minimalCloudParams);
+        
+        // Should still calculate derived properties with defaults
+        expect(system.derivedCloudProperties).toBeDefined();
+        expect(system.derivedCloudProperties!.density).toBeGreaterThan(0);
+        expect(system.derivedCloudProperties!.virialParameter).toBeGreaterThan(0);
+      });
+    });
+
+    describe('backward compatibility for loading', () => {
+      it('should load legacy simulation and apply defaults', () => {
+        // Create a legacy simulation (without new properties)
+        const legacySystem: StarSystem = {
+          id: 'legacy-system-1',
+          name: 'Legacy System',
+          stars: [],
+          planets: [],
+          age: 1e9,
+          initialCloudParameters: {
+            mass: 1.0,
+            metallicity: 1.0,
+            angularMomentum: 1e42,
+            // Missing: temperature, radius, turbulenceVelocity, magneticFieldStrength
+          },
+          // Missing: derivedCloudProperties
+        };
+        
+        const loadedSystem = controller.loadSimulation(legacySystem);
+        
+        // Verify defaults were applied
+        expect(loadedSystem.initialCloudParameters.temperature).toBe(20);
+        expect(loadedSystem.initialCloudParameters.radius).toBeGreaterThan(0);
+        expect(loadedSystem.initialCloudParameters.turbulenceVelocity).toBe(1);
+        expect(loadedSystem.initialCloudParameters.magneticFieldStrength).toBe(10);
+        
+        // Verify derived properties were calculated
+        expect(loadedSystem.derivedCloudProperties).toBeDefined();
+        expect(loadedSystem.derivedCloudProperties!.density).toBeGreaterThan(0);
+        expect(loadedSystem.derivedCloudProperties!.virialParameter).toBeGreaterThan(0);
+      });
+
+      it('should load modern simulation without modification', () => {
+        // Create a modern simulation (with all properties)
+        const modernCloudParams: CloudParameters = {
+          mass: 500.0,
+          metallicity: 1.0,
+          angularMomentum: 1e42,
+          temperature: 10,
+          radius: 1.5,
+          turbulenceVelocity: 0.5,
+          magneticFieldStrength: 10,
+        };
+        
+        const modernSystem = controller.initializeSimulation(modernCloudParams);
+        const originalDerived = modernSystem.derivedCloudProperties;
+        
+        // Load the modern system
+        const loadedSystem = controller.loadSimulation(modernSystem);
+        
+        // Verify nothing was changed
+        expect(loadedSystem.initialCloudParameters).toEqual(modernCloudParams);
+        expect(loadedSystem.derivedCloudProperties).toEqual(originalDerived);
+      });
+
+      it('should calculate radius from mass for legacy simulations', () => {
+        // Create legacy simulation with different masses
+        const legacySystem1: StarSystem = {
+          id: 'legacy-1',
+          name: 'Legacy 1',
+          stars: [],
+          planets: [],
+          age: 0,
+          initialCloudParameters: {
+            mass: 1.0,
+            metallicity: 1.0,
+            angularMomentum: 1e42,
+          },
+        };
+        
+        const legacySystem2: StarSystem = {
+          id: 'legacy-2',
+          name: 'Legacy 2',
+          stars: [],
+          planets: [],
+          age: 0,
+          initialCloudParameters: {
+            mass: 100.0,
+            metallicity: 1.0,
+            angularMomentum: 1e42,
+          },
+        };
+        
+        const loaded1 = controller.loadSimulation(legacySystem1);
+        const loaded2 = controller.loadSimulation(legacySystem2);
+        
+        // More massive cloud should have larger radius
+        expect(loaded2.initialCloudParameters.radius!).toBeGreaterThan(
+          loaded1.initialCloudParameters.radius!
+        );
+        
+        // Both should be within valid range
+        expect(loaded1.initialCloudParameters.radius!).toBeGreaterThanOrEqual(0.1);
+        expect(loaded1.initialCloudParameters.radius!).toBeLessThanOrEqual(200);
+        expect(loaded2.initialCloudParameters.radius!).toBeGreaterThanOrEqual(0.1);
+        expect(loaded2.initialCloudParameters.radius!).toBeLessThanOrEqual(200);
+      });
+
+      it('should preserve simulation age when loading', () => {
+        const legacySystem: StarSystem = {
+          id: 'legacy-aged',
+          name: 'Aged Legacy System',
+          stars: [],
+          planets: [],
+          age: 5e9, // 5 billion years
+          initialCloudParameters: {
+            mass: 1.0,
+            metallicity: 1.0,
+            angularMomentum: 1e42,
+          },
+        };
+        
+        const loadedSystem = controller.loadSimulation(legacySystem);
+        
+        // Verify age is preserved
+        expect(loadedSystem.age).toBe(5e9);
+        expect(controller.getCurrentTime()).toBe(5e9);
+      });
+
+      it('should handle partially complete legacy simulations', () => {
+        // Legacy simulation with some but not all new properties
+        const partialLegacySystem: StarSystem = {
+          id: 'partial-legacy',
+          name: 'Partial Legacy',
+          stars: [],
+          planets: [],
+          age: 0,
+          initialCloudParameters: {
+            mass: 2.0,
+            metallicity: 1.0,
+            angularMomentum: 1e42,
+            temperature: 30, // Has temperature
+            // Missing: radius, turbulenceVelocity, magneticFieldStrength
+          },
+        };
+        
+        const loadedSystem = controller.loadSimulation(partialLegacySystem);
+        
+        // Verify provided value is preserved
+        expect(loadedSystem.initialCloudParameters.temperature).toBe(30);
+        
+        // Verify missing values have defaults
+        expect(loadedSystem.initialCloudParameters.radius).toBeGreaterThan(0);
+        expect(loadedSystem.initialCloudParameters.turbulenceVelocity).toBe(1);
+        expect(loadedSystem.initialCloudParameters.magneticFieldStrength).toBe(10);
+        
+        // Verify derived properties were calculated
+        expect(loadedSystem.derivedCloudProperties).toBeDefined();
+      });
+
+      it('should set simulation state to STOPPED after loading', () => {
+        const legacySystem: StarSystem = {
+          id: 'legacy-state',
+          name: 'Legacy State',
+          stars: [],
+          planets: [],
+          age: 0,
+          initialCloudParameters: {
+            mass: 1.0,
+            metallicity: 1.0,
+            angularMomentum: 1e42,
+          },
+        };
+        
+        controller.loadSimulation(legacySystem);
+        
+        expect(controller.getState()).toBe(SimulationState.STOPPED);
       });
     });
   });

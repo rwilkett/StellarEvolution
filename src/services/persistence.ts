@@ -4,6 +4,8 @@
  */
 
 import { StarSystem } from '../types/core';
+import { calculateDerivedProperties } from '../physics/derivedCloudProperties';
+import { CLOUD_PARAMETER_DEFAULTS } from '../constants/physics';
 
 /**
  * Saved simulation metadata and state
@@ -136,6 +138,45 @@ export function saveSimulation(
 }
 
 /**
+ * Apply backward compatibility defaults to legacy simulations
+ * @param system - Star system that may be missing new properties
+ * @returns Updated star system with all properties
+ */
+function applyBackwardCompatibility(system: StarSystem): StarSystem {
+  // Check if new properties are missing
+  const params = system.initialCloudParameters;
+  const needsDefaults = 
+    params.temperature === undefined ||
+    params.radius === undefined ||
+    params.turbulenceVelocity === undefined ||
+    params.magneticFieldStrength === undefined;
+
+  if (!needsDefaults && system.derivedCloudProperties) {
+    // System already has all properties
+    return system;
+  }
+
+  // Apply defaults for missing properties
+  const updatedParams = {
+    ...params,
+    temperature: params.temperature ?? CLOUD_PARAMETER_DEFAULTS.TEMPERATURE,
+    radius: params.radius ?? CLOUD_PARAMETER_DEFAULTS.RADIUS,
+    turbulenceVelocity: params.turbulenceVelocity ?? CLOUD_PARAMETER_DEFAULTS.TURBULENCE_VELOCITY,
+    magneticFieldStrength: params.magneticFieldStrength ?? CLOUD_PARAMETER_DEFAULTS.MAGNETIC_FIELD_STRENGTH,
+  };
+
+  // Recalculate derived properties with updated parameters
+  const derivedProperties = calculateDerivedProperties(updatedParams);
+
+  // Return updated system
+  return {
+    ...system,
+    initialCloudParameters: updatedParams,
+    derivedCloudProperties: derivedProperties,
+  };
+}
+
+/**
  * Load a saved simulation from LocalStorage
  * @param id - Unique ID of the saved simulation
  * @returns The saved simulation with all state restored
@@ -158,10 +199,13 @@ export function loadSimulation(id: string): SavedSimulation {
     const serialized: SerializedSavedSimulation = JSON.parse(data);
 
     // Convert ISO string back to Date
-    const savedSim: SavedSimulation = {
+    let savedSim: SavedSimulation = {
       ...serialized,
       timestamp: new Date(serialized.timestamp),
     };
+
+    // Apply backward compatibility for legacy simulations
+    savedSim.system = applyBackwardCompatibility(savedSim.system);
 
     return savedSim;
   } catch (error) {

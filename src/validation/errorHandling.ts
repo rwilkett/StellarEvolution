@@ -14,6 +14,7 @@ export enum SimulationErrorType {
   INSUFFICIENT_MASS = 'insufficient_mass',
   EXTREME_VALUES = 'extreme_values',
   ORBITAL_INSTABILITY = 'orbital_instability',
+  LEGACY_FORMAT = 'legacy_format',
 }
 
 /**
@@ -126,6 +127,7 @@ export class ErrorLogger {
       [SimulationErrorType.INSUFFICIENT_MASS]: 0,
       [SimulationErrorType.EXTREME_VALUES]: 0,
       [SimulationErrorType.ORBITAL_INSTABILITY]: 0,
+      [SimulationErrorType.LEGACY_FORMAT]: 0,
     };
 
     for (const log of this.logs) {

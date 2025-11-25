@@ -25,6 +25,7 @@ import {
   checkSystemStability,
   checkNumericalStability,
 } from '../validation';
+import { calculateDerivedProperties } from '../physics/derivedCloudProperties';
 
 /**
  * SimulationController class
@@ -60,8 +61,11 @@ export class SimulationController {
     }
 
     try {
-      // Generate star system from cloud collapse
-      this.system = generateStarSystemFromCloud(cloudParams);
+      // Calculate derived cloud properties
+      const derivedProperties = calculateDerivedProperties(cloudParams);
+      
+      // Generate star system from cloud collapse with derived properties
+      this.system = generateStarSystemFromCloud(cloudParams, derivedProperties);
       
       // Check system stability
       const isStable = checkSystemStability(this.system);
@@ -317,6 +321,135 @@ export class SimulationController {
    */
   public getTimeScale(): number {
     return this.timeScale;
+  }
+
+  /**
+   * Load a simulation from saved data
+   * Handles backward compatibility for legacy simulations missing new cloud properties
+   * @param savedSystem - Saved star system data
+   * @returns The loaded star system with all properties
+   */
+  public loadSimulation(savedSystem: StarSystem): StarSystem {
+    try {
+      // Check if this is a legacy simulation (missing new cloud properties)
+      const isLegacy = !savedSystem.initialCloudParameters.temperature ||
+                       !savedSystem.initialCloudParameters.radius ||
+                       !savedSystem.initialCloudParameters.turbulenceVelocity ||
+                       !savedSystem.initialCloudParameters.magneticFieldStrength ||
+                       !savedSystem.derivedCloudProperties;
+      
+      if (isLegacy) {
+        // Apply default values for missing properties
+        const updatedCloudParams = this.applyDefaultCloudParameters(savedSystem.initialCloudParameters);
+        
+        // Recalculate derived properties with defaults
+        const derivedProperties = calculateDerivedProperties(updatedCloudParams);
+        
+        // Update the system with new format
+        this.system = {
+          ...savedSystem,
+          initialCloudParameters: updatedCloudParams,
+          derivedCloudProperties: derivedProperties,
+        };
+        
+        // Log that defaults were applied
+        errorLogger.logError(
+          new SimulationError(
+            SimulationErrorType.LEGACY_FORMAT,
+            'Loaded legacy simulation - applied default values for new cloud properties',
+            { 
+              systemId: savedSystem.id,
+              appliedDefaults: {
+                temperature: updatedCloudParams.temperature,
+                radius: updatedCloudParams.radius,
+                turbulenceVelocity: updatedCloudParams.turbulenceVelocity,
+                magneticFieldStrength: updatedCloudParams.magneticFieldStrength,
+              }
+            },
+            true // Recoverable
+          )
+        );
+      } else {
+        // Modern format - load as-is
+        this.system = savedSystem;
+        
+        // Recalculate derived properties if missing (shouldn't happen but be safe)
+        if (!this.system.derivedCloudProperties) {
+          this.system.derivedCloudProperties = calculateDerivedProperties(
+            this.system.initialCloudParameters
+          );
+        }
+      }
+      
+      // Set simulation state
+      this.currentTime = savedSystem.age;
+      this.state = SimulationState.STOPPED;
+      
+      return this.system;
+    } catch (error) {
+      if (error instanceof SimulationError) {
+        throw error;
+      }
+      
+      const simError = new SimulationError(
+        SimulationErrorType.NUMERICAL_INSTABILITY,
+        `Failed to load simulation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { originalError: error },
+        false
+      );
+      errorLogger.logError(simError);
+      throw simError;
+    }
+  }
+
+  /**
+   * Apply default values for missing cloud parameters (backward compatibility)
+   * @param cloudParams - Original cloud parameters (possibly incomplete)
+   * @returns Cloud parameters with all required properties
+   */
+  private applyDefaultCloudParameters(cloudParams: CloudParameters): CloudParameters {
+    const DEFAULTS = {
+      TEMPERATURE: 20,           // K
+      RADIUS: 10,                // pc
+      TURBULENCE_VELOCITY: 1,    // km/s
+      MAGNETIC_FIELD_STRENGTH: 10, // μG
+    };
+    
+    // Calculate radius from mass if not provided
+    // Assume typical cloud density of 100 particles/cm³
+    let defaultRadius = DEFAULTS.RADIUS;
+    if (!cloudParams.radius) {
+      // ρ = M / (4/3 π R³)
+      // R = (3M / 4πρ)^(1/3)
+      const TYPICAL_DENSITY = 100; // particles/cm³
+      const PARSEC_TO_CM = 3.086e18; // cm per parsec
+      const SOLAR_MASS_TO_GRAMS = 1.989e33; // grams per solar mass
+      const HYDROGEN_MASS = 1.67e-24; // grams
+      
+      // Convert mass to number of particles
+      const massInGrams = cloudParams.mass * SOLAR_MASS_TO_GRAMS;
+      const numParticles = massInGrams / (2.33 * HYDROGEN_MASS); // Mean molecular weight 2.33
+      
+      // Calculate volume in cm³
+      const volumeCm3 = numParticles / TYPICAL_DENSITY;
+      
+      // Calculate radius in cm
+      const radiusCm = Math.pow((3 * volumeCm3) / (4 * Math.PI), 1/3);
+      
+      // Convert to parsecs
+      defaultRadius = radiusCm / PARSEC_TO_CM;
+      
+      // Clamp to valid range
+      defaultRadius = Math.max(0.1, Math.min(200, defaultRadius));
+    }
+    
+    return {
+      ...cloudParams,
+      temperature: cloudParams.temperature ?? DEFAULTS.TEMPERATURE,
+      radius: cloudParams.radius ?? defaultRadius,
+      turbulenceVelocity: cloudParams.turbulenceVelocity ?? DEFAULTS.TURBULENCE_VELOCITY,
+      magneticFieldStrength: cloudParams.magneticFieldStrength ?? DEFAULTS.MAGNETIC_FIELD_STRENGTH,
+    };
   }
 
   /**

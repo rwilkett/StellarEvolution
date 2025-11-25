@@ -56,6 +56,30 @@ export const VALIDATION_RANGES = {
     unit: 'kg⋅m²/s'
   },
   
+  TEMPERATURE: {
+    min: 5,                       // Minimum cloud temperature in Kelvin
+    max: 100,                     // Maximum cloud temperature in Kelvin
+    unit: 'K'
+  },
+  
+  RADIUS: {
+    min: 0.1,                     // Minimum cloud radius in parsecs
+    max: 200,                     // Maximum cloud radius in parsecs
+    unit: 'pc'
+  },
+  
+  TURBULENCE_VELOCITY: {
+    min: 0.1,                     // Minimum turbulence velocity in km/s
+    max: 10,                      // Maximum turbulence velocity in km/s
+    unit: 'km/s'
+  },
+  
+  MAGNETIC_FIELD_STRENGTH: {
+    min: 1,                       // Minimum magnetic field strength in microgauss
+    max: 1000,                    // Maximum magnetic field strength in microgauss
+    unit: 'μG'
+  },
+  
   // Stellar mass ranges
   STELLAR_MASS: {
     min: 0.08,                    // Minimum mass for hydrogen fusion (brown dwarf limit)
@@ -116,4 +140,12 @@ export const FINAL_STATE_THRESHOLDS = {
   WHITE_DWARF_MAX: 8,      // Maximum initial mass for white dwarf (M☉)
   NEUTRON_STAR_MAX: 25,    // Maximum initial mass for neutron star (M☉)
   // Above this becomes black hole
+} as const;
+
+// Default values for backward compatibility with legacy simulations
+export const CLOUD_PARAMETER_DEFAULTS = {
+  TEMPERATURE: 20,           // Default cloud temperature in Kelvin
+  RADIUS: 10,                // Default cloud radius in parsecs
+  TURBULENCE_VELOCITY: 1,    // Default turbulence velocity in km/s
+  MAGNETIC_FIELD_STRENGTH: 10, // Default magnetic field strength in microgauss (μG)
 } as const;

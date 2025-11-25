@@ -37,15 +37,20 @@ function generatePlanetId(): string {
  * Create protoplanetary disk from star properties
  * Calculates disk mass, extent, and metallicity from initial cloud conditions
  * @param star - Host star object
+ * @param magneticFieldStrength - Optional magnetic field strength in μG (for magnetic braking)
  * @returns ProtoplanetaryDisk object or null if disk cannot form
  */
-export function createProtoplanetaryDisk(star: Star): ProtoplanetaryDisk | null {
+export function createProtoplanetaryDisk(
+  star: Star,
+  magneticFieldStrength?: number
+): ProtoplanetaryDisk | null {
   // Calculate disk properties using physics functions
   const disk = calculateDiskProperties(
     star.id,
     star.mass,
     star.luminosity,
-    star.metallicity
+    star.metallicity,
+    magneticFieldStrength
   );
 
   // Check if disk has sufficient mass for planet formation

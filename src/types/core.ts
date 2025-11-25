@@ -19,6 +19,21 @@ export interface CloudParameters {
   mass: number;              // Total mass in solar masses (M☉)
   metallicity: number;       // Metallicity relative to solar (Z☉)
   angularMomentum: number;   // Angular momentum in kg⋅m²/s
+  temperature?: number;      // Cloud temperature in Kelvin (optional, defaults to 20K)
+  radius?: number;           // Cloud radius in parsecs (optional, defaults to 10pc)
+  turbulenceVelocity?: number; // Turbulence velocity dispersion in km/s (optional, defaults to 1 km/s)
+  magneticFieldStrength?: number; // Magnetic field strength in microgauss (optional, defaults to 10 μG)
+}
+
+// Derived cloud properties calculated from input parameters
+export interface DerivedCloudProperties {
+  density: number;           // Cloud density in particles/cm³
+  virialParameter: number;   // Virial parameter (dimensionless)
+  jeansMass: number;         // Jeans mass in solar masses
+  collapseTimescale: number; // Free-fall collapse timescale in years
+  isBound: boolean;          // Whether cloud is gravitationally bound (virialParameter < 2)
+  turbulentJeansLength: number; // Turbulent Jeans length in parsecs
+  magneticFluxToMassRatio: number; // Magnetic flux-to-mass ratio (normalized)
 }
 
 // Stellar evolution phases
@@ -101,6 +116,7 @@ export interface StarSystem {
   planets: Planet[];
   age: number;                // System age in years
   initialCloudParameters: CloudParameters;
+  derivedCloudProperties?: DerivedCloudProperties; // Calculated cloud properties (optional for backward compatibility)
 }
 
 // Protoplanetary disk properties
@@ -111,6 +127,7 @@ export interface ProtoplanetaryDisk {
   outerRadius: number;        // Outer radius in AU
   metallicity: number;        // Disk metallicity relative to solar
   snowLine: number;           // Snow line distance in AU
+  magneticBrakingFactor?: number; // Reduction factor from magnetic braking (0-1, optional for backward compatibility)
 }
 
 // Simulation state

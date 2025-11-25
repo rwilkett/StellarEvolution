@@ -87,6 +87,19 @@ describe('Persistence Service', () => {
       mass: 1.0,
       metallicity: 1.0,
       angularMomentum: 1e48,
+      temperature: 20,
+      radius: 10,
+      turbulenceVelocity: 1,
+      magneticFieldStrength: 10,
+    },
+    derivedCloudProperties: {
+      density: 100,
+      virialParameter: 1.5,
+      jeansMass: 0.5,
+      collapseTimescale: 1e6,
+      isBound: true,
+      turbulentJeansLength: 0.5,
+      magneticFluxToMassRatio: 1.0,
     },
   };
 
@@ -552,6 +565,214 @@ describe('Persistence Service', () => {
       
       expect(loaded.system.stars).toHaveLength(10);
       expect(loaded.system.planets).toHaveLength(50);
+    });
+  });
+
+  describe('Enhanced Cloud Properties', () => {
+    it('should save and load all new cloud properties', () => {
+      const enhancedSystem: StarSystem = {
+        ...mockSystem,
+        initialCloudParameters: {
+          mass: 100,
+          metallicity: 1.5,
+          angularMomentum: 1e49,
+          temperature: 15,
+          radius: 20,
+          turbulenceVelocity: 2.5,
+          magneticFieldStrength: 50,
+        },
+        derivedCloudProperties: {
+          density: 200,
+          virialParameter: 1.2,
+          jeansMass: 0.8,
+          collapseTimescale: 5e5,
+          isBound: true,
+          turbulentJeansLength: 0.3,
+          magneticFluxToMassRatio: 1.5,
+        },
+      };
+
+      const id = saveSimulation(enhancedSystem, 0, 1.0, 'Enhanced Properties');
+      const loaded = loadSimulation(id);
+
+      // Verify all new cloud parameters are preserved
+      expect(loaded.system.initialCloudParameters.temperature).toBe(15);
+      expect(loaded.system.initialCloudParameters.radius).toBe(20);
+      expect(loaded.system.initialCloudParameters.turbulenceVelocity).toBe(2.5);
+      expect(loaded.system.initialCloudParameters.magneticFieldStrength).toBe(50);
+
+      // Verify derived properties are preserved
+      expect(loaded.system.derivedCloudProperties).toBeDefined();
+      expect(loaded.system.derivedCloudProperties!.density).toBe(200);
+      expect(loaded.system.derivedCloudProperties!.virialParameter).toBe(1.2);
+      expect(loaded.system.derivedCloudProperties!.jeansMass).toBe(0.8);
+      expect(loaded.system.derivedCloudProperties!.collapseTimescale).toBe(5e5);
+      expect(loaded.system.derivedCloudProperties!.isBound).toBe(true);
+      expect(loaded.system.derivedCloudProperties!.turbulentJeansLength).toBe(0.3);
+      expect(loaded.system.derivedCloudProperties!.magneticFluxToMassRatio).toBe(1.5);
+    });
+
+    it('should preserve all derived cloud properties through round-trip', () => {
+      const id = saveSimulation(mockSystem, 0, 1.0, 'Derived Properties Test');
+      const loaded = loadSimulation(id);
+
+      expect(loaded.system.derivedCloudProperties).toBeDefined();
+      expect(loaded.system.derivedCloudProperties!.density).toBe(100);
+      expect(loaded.system.derivedCloudProperties!.virialParameter).toBe(1.5);
+      expect(loaded.system.derivedCloudProperties!.jeansMass).toBe(0.5);
+      expect(loaded.system.derivedCloudProperties!.collapseTimescale).toBe(1e6);
+      expect(loaded.system.derivedCloudProperties!.isBound).toBe(true);
+      expect(loaded.system.derivedCloudProperties!.turbulentJeansLength).toBe(0.5);
+      expect(loaded.system.derivedCloudProperties!.magneticFluxToMassRatio).toBe(1.0);
+    });
+  });
+
+  describe('Backward Compatibility', () => {
+    it('should apply default values when loading legacy simulation without new properties', () => {
+      // Create a legacy system without new properties
+      const legacySystem: StarSystem = {
+        id: 'legacy-system',
+        name: 'Legacy System',
+        stars: [mockStar],
+        planets: [mockPlanet],
+        age: 4.6e9,
+        initialCloudParameters: {
+          mass: 1.0,
+          metallicity: 1.0,
+          angularMomentum: 1e48,
+          // No temperature, radius, turbulenceVelocity, or magneticFieldStrength
+        },
+        // No derivedCloudProperties
+      };
+
+      // Manually save to simulate legacy data
+      const id = saveSimulation(legacySystem, 0, 1.0, 'Legacy Save');
+      
+      // Load and verify defaults are applied
+      const loaded = loadSimulation(id);
+
+      expect(loaded.system.initialCloudParameters.temperature).toBe(20); // Default
+      expect(loaded.system.initialCloudParameters.radius).toBe(10); // Default
+      expect(loaded.system.initialCloudParameters.turbulenceVelocity).toBe(1); // Default
+      expect(loaded.system.initialCloudParameters.magneticFieldStrength).toBe(10); // Default
+    });
+
+    it('should recalculate derived properties for legacy simulations', () => {
+      // Create a legacy system without derived properties
+      const legacySystem: StarSystem = {
+        id: 'legacy-system-2',
+        name: 'Legacy System 2',
+        stars: [mockStar],
+        planets: [],
+        age: 0,
+        initialCloudParameters: {
+          mass: 50,
+          metallicity: 1.0,
+          angularMomentum: 1e48,
+          // Missing new properties
+        },
+        // No derivedCloudProperties
+      };
+
+      const id = saveSimulation(legacySystem, 0, 1.0, 'Legacy Without Derived');
+      const loaded = loadSimulation(id);
+
+      // Verify derived properties are calculated
+      expect(loaded.system.derivedCloudProperties).toBeDefined();
+      expect(loaded.system.derivedCloudProperties!.density).toBeGreaterThan(0);
+      expect(loaded.system.derivedCloudProperties!.virialParameter).toBeGreaterThan(0);
+      expect(loaded.system.derivedCloudProperties!.jeansMass).toBeGreaterThan(0);
+      expect(loaded.system.derivedCloudProperties!.collapseTimescale).toBeGreaterThan(0);
+      expect(typeof loaded.system.derivedCloudProperties!.isBound).toBe('boolean');
+      expect(loaded.system.derivedCloudProperties!.turbulentJeansLength).toBeGreaterThan(0);
+      expect(loaded.system.derivedCloudProperties!.magneticFluxToMassRatio).toBeGreaterThan(0);
+    });
+
+    it('should not modify systems that already have all properties', () => {
+      const completeSystem: StarSystem = {
+        ...mockSystem,
+        initialCloudParameters: {
+          mass: 75,
+          metallicity: 2.0,
+          angularMomentum: 5e48,
+          temperature: 30,
+          radius: 15,
+          turbulenceVelocity: 3,
+          magneticFieldStrength: 100,
+        },
+        derivedCloudProperties: {
+          density: 150,
+          virialParameter: 0.8,
+          jeansMass: 1.2,
+          collapseTimescale: 8e5,
+          isBound: true,
+          turbulentJeansLength: 0.4,
+          magneticFluxToMassRatio: 2.0,
+        },
+      };
+
+      const id = saveSimulation(completeSystem, 0, 1.0, 'Complete System');
+      const loaded = loadSimulation(id);
+
+      // Verify original values are preserved (not replaced with defaults)
+      expect(loaded.system.initialCloudParameters.temperature).toBe(30);
+      expect(loaded.system.initialCloudParameters.radius).toBe(15);
+      expect(loaded.system.initialCloudParameters.turbulenceVelocity).toBe(3);
+      expect(loaded.system.initialCloudParameters.magneticFieldStrength).toBe(100);
+      
+      // Verify derived properties are preserved
+      expect(loaded.system.derivedCloudProperties!.density).toBe(150);
+      expect(loaded.system.derivedCloudProperties!.virialParameter).toBe(0.8);
+    });
+
+    it('should handle partial legacy data (some new properties present)', () => {
+      const partialSystem: StarSystem = {
+        ...mockSystem,
+        initialCloudParameters: {
+          mass: 25,
+          metallicity: 0.5,
+          angularMomentum: 2e48,
+          temperature: 25, // Has temperature
+          // Missing radius, turbulenceVelocity, magneticFieldStrength
+        },
+      };
+
+      const id = saveSimulation(partialSystem, 0, 1.0, 'Partial Legacy');
+      const loaded = loadSimulation(id);
+
+      // Verify existing property is preserved
+      expect(loaded.system.initialCloudParameters.temperature).toBe(25);
+      
+      // Verify missing properties get defaults
+      expect(loaded.system.initialCloudParameters.radius).toBe(10);
+      expect(loaded.system.initialCloudParameters.turbulenceVelocity).toBe(1);
+      expect(loaded.system.initialCloudParameters.magneticFieldStrength).toBe(10);
+      
+      // Verify derived properties are calculated
+      expect(loaded.system.derivedCloudProperties).toBeDefined();
+    });
+
+    it('should preserve original cloud parameters when applying defaults', () => {
+      const legacySystem: StarSystem = {
+        ...mockSystem,
+        initialCloudParameters: {
+          mass: 150,
+          metallicity: 0.8,
+          angularMomentum: 3e48,
+        },
+      };
+
+      const id = saveSimulation(legacySystem, 0, 1.0, 'Preserve Original');
+      const loaded = loadSimulation(id);
+
+      // Verify original parameters are preserved
+      expect(loaded.system.initialCloudParameters.mass).toBe(150);
+      expect(loaded.system.initialCloudParameters.metallicity).toBe(0.8);
+      expect(loaded.system.initialCloudParameters.angularMomentum).toBe(3e48);
+      
+      // Verify defaults are added
+      expect(loaded.system.initialCloudParameters.temperature).toBe(20);
+      expect(loaded.system.initialCloudParameters.radius).toBe(10);
     });
   });
 });

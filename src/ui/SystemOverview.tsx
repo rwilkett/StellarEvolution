@@ -204,9 +204,92 @@ export const SystemOverview: React.FC = () => {
                 label="Angular Momentum"
                 value={`${system.initialCloudParameters.angularMomentum.toExponential(2)} kg⋅m²/s`}
               />
+              <InfoRow
+                label="Temperature"
+                value={`${(system.initialCloudParameters.temperature ?? 20).toFixed(1)} K`}
+              />
+              <InfoRow
+                label="Radius"
+                value={`${(system.initialCloudParameters.radius ?? 10).toFixed(2)} pc`}
+              />
+              <InfoRow
+                label="Turbulence Velocity"
+                value={`${(system.initialCloudParameters.turbulenceVelocity ?? 1).toFixed(2)} km/s`}
+              />
+              <InfoRow
+                label="Magnetic Field Strength"
+                value={`${(system.initialCloudParameters.magneticFieldStrength ?? 10).toFixed(1)} μG`}
+              />
             </div>
           </div>
         </div>
+
+        {/* Derived Cloud Properties */}
+        {system.derivedCloudProperties && (
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ marginTop: 0, marginBottom: '12px', fontSize: '16px' }}>
+              Derived Cloud Properties
+            </h4>
+            <div style={{
+              padding: '15px',
+              backgroundColor: '#e7f3ff',
+              borderRadius: '6px',
+              border: '1px solid #b3d9ff',
+            }}>
+              <div style={{ display: 'grid', gap: '8px' }}>
+                <InfoRow
+                  label="Density"
+                  value={`${system.derivedCloudProperties.density < 1000 
+                    ? system.derivedCloudProperties.density.toFixed(2) 
+                    : system.derivedCloudProperties.density.toExponential(2)} particles/cm³`}
+                />
+                <InfoRow
+                  label="Virial Parameter"
+                  value={
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>{system.derivedCloudProperties.virialParameter.toFixed(3)}</span>
+                      <span style={{
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        backgroundColor: system.derivedCloudProperties.isBound ? '#d4edda' : '#f8d7da',
+                        color: system.derivedCloudProperties.isBound ? '#155724' : '#721c24',
+                      }}>
+                        {system.derivedCloudProperties.isBound ? '✓ Bound' : '✗ Unbound'}
+                      </span>
+                    </span>
+                  }
+                />
+                <InfoRow
+                  label="Jeans Mass"
+                  value={`${system.derivedCloudProperties.jeansMass.toFixed(2)} M☉`}
+                />
+                <InfoRow
+                  label="Collapse Timescale"
+                  value={formatTime(system.derivedCloudProperties.collapseTimescale)}
+                  icon="⏱️"
+                />
+              </div>
+              
+              {/* Collapse timeline context */}
+              {system.derivedCloudProperties.isBound && (
+                <div style={{
+                  marginTop: '10px',
+                  padding: '10px',
+                  backgroundColor: '#d4edda',
+                  border: '1px solid #c3e6cb',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  color: '#155724',
+                }}>
+                  <strong>Cloud collapsed in {formatTime(system.derivedCloudProperties.collapseTimescale)}</strong>
+                  {' '}to form this stellar system.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Planet Distribution */}
         {system.planets.length > 0 && (
@@ -365,7 +448,7 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon, color }) => {
 // Helper component for info rows
 interface InfoRowProps {
   label: string;
-  value: string;
+  value: React.ReactNode;
   icon?: string;
 }
 

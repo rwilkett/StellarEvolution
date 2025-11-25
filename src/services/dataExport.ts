@@ -54,10 +54,33 @@ function generateMetadataCSV(system: StarSystem): string {
   metadata.push(`# Export Date: ${new Date().toISOString()}`);
   metadata.push(`# System Name: ${system.name}`);
   metadata.push(`# System Age: ${system.age.toExponential(4)} years`);
-  metadata.push(`# Initial Cloud Mass: ${system.initialCloudParameters.mass.toFixed(4)} M☉`);
-  metadata.push(`# Initial Metallicity: ${system.initialCloudParameters.metallicity.toFixed(4)} Z☉`);
-  metadata.push(`# Initial Angular Momentum: ${system.initialCloudParameters.angularMomentum.toExponential(4)} kg⋅m²/s`);
   metadata.push('');
+  
+  // Initial cloud parameters
+  metadata.push('# Initial Cloud Parameters:');
+  metadata.push(`#   Mass: ${system.initialCloudParameters.mass.toFixed(4)} M☉`);
+  metadata.push(`#   Metallicity: ${system.initialCloudParameters.metallicity.toFixed(4)} Z☉`);
+  metadata.push(`#   Angular Momentum: ${system.initialCloudParameters.angularMomentum.toExponential(4)} kg⋅m²/s`);
+  metadata.push(`#   Temperature: ${(system.initialCloudParameters.temperature ?? 20).toFixed(2)} K`);
+  metadata.push(`#   Radius: ${(system.initialCloudParameters.radius ?? 10).toFixed(4)} pc`);
+  metadata.push(`#   Turbulence Velocity: ${(system.initialCloudParameters.turbulenceVelocity ?? 1).toFixed(4)} km/s`);
+  metadata.push(`#   Magnetic Field Strength: ${(system.initialCloudParameters.magneticFieldStrength ?? 10).toFixed(4)} μG`);
+  metadata.push('');
+  
+  // Derived cloud properties (if available)
+  if (system.derivedCloudProperties) {
+    const derived = system.derivedCloudProperties;
+    metadata.push('# Derived Cloud Properties:');
+    metadata.push(`#   Density: ${derived.density.toExponential(4)} particles/cm³`);
+    metadata.push(`#   Virial Parameter: ${derived.virialParameter.toFixed(4)}`);
+    metadata.push(`#   Bound Status: ${derived.isBound ? 'Bound' : 'Unbound'}`);
+    metadata.push(`#   Jeans Mass: ${derived.jeansMass.toFixed(4)} M☉`);
+    metadata.push(`#   Collapse Timescale: ${derived.collapseTimescale.toExponential(4)} years`);
+    metadata.push(`#   Turbulent Jeans Length: ${derived.turbulentJeansLength.toFixed(4)} pc`);
+    metadata.push(`#   Magnetic Flux-to-Mass Ratio: ${derived.magneticFluxToMassRatio.toExponential(4)}`);
+    metadata.push('');
+  }
+  
   return metadata.join('\n');
 }
 
@@ -322,6 +345,7 @@ export async function exportStellarProperties(
           systemName: system.name,
           systemAge: system.age,
           initialConditions: system.initialCloudParameters,
+          derivedCloudProperties: system.derivedCloudProperties,
         },
         stars: system.stars,
       };
@@ -371,6 +395,7 @@ export async function exportOrbitalParameters(
           systemName: system.name,
           systemAge: system.age,
           initialConditions: system.initialCloudParameters,
+          derivedCloudProperties: system.derivedCloudProperties,
         },
         planets: system.planets,
       };
@@ -427,6 +452,7 @@ export async function exportCompleteSystem(
           systemName: system.name,
           systemAge: system.age,
           initialConditions: system.initialCloudParameters,
+          derivedCloudProperties: system.derivedCloudProperties,
         },
         stars: system.stars,
         planets: system.planets,
