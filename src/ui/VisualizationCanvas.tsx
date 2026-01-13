@@ -12,6 +12,7 @@ interface VisualizationConfig {
   centerPosition: Vector2; // Center of view in AU
   showOrbits: boolean;
   showLabels: boolean;
+  showInternalStructure: boolean;
 }
 
 export const VisualizationCanvas: React.FC = () => {
@@ -28,6 +29,7 @@ export const VisualizationCanvas: React.FC = () => {
     centerPosition: { x: 0, y: 0 },
     showOrbits: true,
     showLabels: true,
+    showInternalStructure: true, // Default to showing internal structure
   });
   
   // Pan state
@@ -662,6 +664,16 @@ export const VisualizationCanvas: React.FC = () => {
               onChange={(e) => setConfig(prev => ({ ...prev, showLabels: e.target.checked }))}
             />
             {' '}Show Labels
+          </label>
+        </div>
+        <div>
+          <label>
+            <input
+              type="checkbox"
+              checked={config.showInternalStructure}
+              onChange={(e) => setConfig(prev => ({ ...prev, showInternalStructure: e.target.checked }))}
+            />
+            {' '}Show Internal Structure
           </label>
         </div>
         <div style={{ marginTop: '8px', fontSize: '11px', color: '#aaa' }}>

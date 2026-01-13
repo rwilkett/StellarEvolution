@@ -15,6 +15,7 @@ import {
   determineSpectralType,
   calculateMainSequenceLifetime,
 } from '../physics/stellarPhysics';
+import { calculateInternalStructure } from '../physics/internalStructure';
 import { FINAL_STATE_THRESHOLDS } from '../constants/physics';
 
 /**
@@ -44,6 +45,16 @@ export function createStar(
   const spectralType = determineSpectralType(temperature);
   const lifetime = calculateMainSequenceLifetime(mass);
 
+  // Calculate initial internal structure
+  const internalStructure = calculateInternalStructure(
+    mass,
+    radius,
+    luminosity,
+    EvolutionPhase.PROTOSTAR,
+    0, // age ratio = 0 for new star
+    metallicity
+  );
+
   // Create star object with initial properties
   const star: Star = {
     id: generateStarId(),
@@ -59,6 +70,7 @@ export function createStar(
     lifetime,
     position: { x: 0, y: 0, z: 0 },
     velocity: { x: 0, y: 0, z: 0 },
+    internalStructure,
   };
 
   return star;
@@ -279,6 +291,21 @@ export function evolveStar(star: Star, deltaTime: number): Star {
   // Update spectral type based on new temperature
   const spectralType = determineSpectralType(temperature);
 
+  // Calculate age ratio for internal structure
+  const ageRatio = newAge / star.lifetime;
+
+  // Update internal structure
+  const internalStructure = calculateInternalStructure(
+    star.mass,
+    radius,
+    luminosity,
+    newPhase,
+    ageRatio,
+    star.metallicity,
+    star.internalStructure,
+    deltaTime
+  );
+
   // Return updated star
   return {
     ...star,
@@ -288,6 +315,7 @@ export function evolveStar(star: Star, deltaTime: number): Star {
     radius,
     temperature,
     spectralType,
+    internalStructure,
   };
 }
 
