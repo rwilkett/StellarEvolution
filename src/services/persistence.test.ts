@@ -10,7 +10,7 @@ import {
   deleteSimulation,
   clearAllSimulations,
 } from './persistence';
-import { StarSystem, Star, Planet, EvolutionPhase, SpectralType, PlanetComposition } from '../types/core';
+import { StarSystem, Star, Planet, EvolutionPhase, SpectralType, PlanetComposition, NuclearReaction } from '../types/core';
 
 // Mock localStorage for Node.js test environment
 class LocalStorageMock {
@@ -62,6 +62,35 @@ describe('Persistence Service', () => {
     lifetime: 1e10,
     position: { x: 0, y: 0, z: 0 },
     velocity: { x: 0, y: 0, z: 0 },
+    internalStructure: {
+      coreComposition: {
+        hydrogen: 0.73,
+        helium: 0.25,
+        carbon: 0.005,
+        oxygen: 0.01,
+        neon: 0.002,
+        magnesium: 0.001,
+        silicon: 0.001,
+        iron: 0.001,
+      },
+      coreTemperature: 1.5e7,
+      corePressure: 2.5e16,
+      activeReactions: {
+        coreReaction: NuclearReaction.PP_CHAIN,
+        shellReactions: [],
+        energyProductionRate: 1.0,
+      },
+      shellBurning: {
+        hydrogenShell: false,
+        heliumShell: false,
+        carbonShell: false,
+      },
+      layerStructure: {
+        coreRadius: 0.25,
+        radiativeZoneRadius: 0.7,
+        convectiveZoneRadius: 1.0,
+      },
+    },
   };
 
   const mockPlanet: Planet = {

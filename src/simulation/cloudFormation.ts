@@ -197,6 +197,9 @@ import { Star, StarSystem, EvolutionPhase, Vector3 } from '../types/core';
 import { 
   calculateInitialStellarProperties 
 } from '../physics/stellarPhysics';
+import {
+  calculateInternalStructure
+} from '../physics/internalStructure';
 import { 
   calculateOrbitalParametersFromAngularMomentum,
   calculateOrbitalPeriod,
@@ -220,6 +223,16 @@ export function generateStarFromMass(
   const position: Vector3 = { x: 0, y: 0, z: 0 };
   const velocity: Vector3 = { x: 0, y: 0, z: 0 };
   
+  // Calculate initial internal structure
+  const internalStructure = calculateInternalStructure(
+    mass,
+    properties.radius,
+    properties.luminosity,
+    EvolutionPhase.PROTOSTAR,
+    0, // ageRatio (just formed)
+    metallicity
+  );
+  
   return {
     id,
     name,
@@ -234,6 +247,7 @@ export function generateStarFromMass(
     lifetime: properties.lifetime,
     position,
     velocity,
+    internalStructure,
   };
 }
 

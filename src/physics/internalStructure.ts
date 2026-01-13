@@ -156,9 +156,9 @@ export function determineActiveReactions(
   const T_CNO = 1.5e7;    // CNO cycle dominates
   const T_He = 1e8;       // Helium burning (triple-alpha)
   const T_C = 6e8;        // Carbon burning
-  const T_Ne = 1.2e9;     // Neon burning
-  const T_O = 1.5e9;      // Oxygen burning
-  const T_Si = 2.7e9;     // Silicon burning
+  // const T_Ne = 1.2e9;     // Neon burning
+  // const T_O = 1.5e9;      // Oxygen burning
+  // const T_Si = 2.7e9;     // Silicon burning
   
   // Check phase and temperature
   switch (phase) {
@@ -216,13 +216,13 @@ export function determineActiveReactions(
  * Determine which shell burning is occurring
  * @param phase - Current evolution phase
  * @param mass - Stellar mass in solar masses
- * @param ageRatio - Age relative to main sequence lifetime
+ * @param _ageRatio - Age relative to main sequence lifetime (unused but kept for API consistency)
  * @returns Shell burning indicators
  */
 export function determineShellBurning(
   phase: EvolutionPhase,
   mass: number,
-  ageRatio: number
+  _ageRatio: number
 ): ShellBurning {
   switch (phase) {
     case EvolutionPhase.RED_GIANT:
@@ -341,13 +341,13 @@ export function calculateLayerStructure(
 /**
  * Calculate energy production rate from nuclear reactions
  * @param reaction - Active nuclear reaction
- * @param mass - Stellar mass in solar masses
+ * @param _mass - Stellar mass in solar masses (unused but kept for API consistency)
  * @param luminosity - Stellar luminosity in solar luminosities
  * @returns Energy production rate in solar luminosities
  */
 export function calculateEnergyProductionRate(
   reaction: NuclearReaction,
-  mass: number,
+  _mass: number,
   luminosity: number
 ): number {
   // Most energy production comes from core reactions
@@ -379,7 +379,7 @@ export function calculateEnergyProductionRate(
  * Evolve core composition over time
  * @param composition - Current core composition
  * @param coreReaction - Active nuclear reaction in core
- * @param shellBurning - Shell burning indicators
+ * @param _shellBurning - Shell burning indicators (unused but kept for API consistency)
  * @param deltaTime - Time step in years
  * @param mass - Stellar mass in solar masses
  * @returns Updated core composition
@@ -387,7 +387,7 @@ export function calculateEnergyProductionRate(
 export function evolveCoreComposition(
   composition: CoreComposition,
   coreReaction: NuclearReaction,
-  shellBurning: ShellBurning,
+  _shellBurning: ShellBurning,
   deltaTime: number,
   mass: number
 ): CoreComposition {

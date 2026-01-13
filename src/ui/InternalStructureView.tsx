@@ -172,7 +172,7 @@ function drawShellBurning(
 /**
  * Get core color based on phase and active reaction
  */
-function getCoreColor(phase: EvolutionPhase, reaction: string): string {
+function getCoreColor(phase: EvolutionPhase, _reaction: string): string {
   switch (phase) {
     case EvolutionPhase.PROTOSTAR:
       return 'rgba(255, 100, 0, 0.6)';

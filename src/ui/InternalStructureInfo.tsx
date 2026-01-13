@@ -5,7 +5,6 @@
 
 import React, { useState } from 'react';
 import { Star, EvolutionPhase } from '../types/core';
-import { Tooltip } from './Tooltip';
 
 interface InternalStructureInfoProps {
   star: Star;
