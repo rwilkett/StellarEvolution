@@ -45,6 +45,62 @@ export enum SpectralType {
   M = 'M'
 }
 
+// Nuclear reaction types
+export enum NuclearReaction {
+  PP_CHAIN = 'pp_chain',                    // Proton-proton chain (H → He)
+  CNO_CYCLE = 'cno_cycle',                  // CNO cycle (H → He)
+  TRIPLE_ALPHA = 'triple_alpha',            // Helium burning (He → C)
+  HELIUM_CARBON = 'helium_carbon',          // Helium + Carbon (He + C → O)
+  CARBON_BURNING = 'carbon_burning',        // Carbon burning (C → Ne, Mg)
+  NEON_BURNING = 'neon_burning',            // Neon burning (Ne → O, Mg)
+  OXYGEN_BURNING = 'oxygen_burning',        // Oxygen burning (O → Si, S)
+  SILICON_BURNING = 'silicon_burning',      // Silicon burning (Si → Fe)
+  NONE = 'none'                             // No active reactions
+}
+
+// Core composition - mass fractions of elements
+export interface CoreComposition {
+  hydrogen: number;      // Hydrogen mass fraction (0-1)
+  helium: number;        // Helium mass fraction (0-1)
+  carbon: number;        // Carbon mass fraction (0-1)
+  oxygen: number;        // Oxygen mass fraction (0-1)
+  neon: number;          // Neon mass fraction (0-1)
+  magnesium: number;     // Magnesium mass fraction (0-1)
+  silicon: number;       // Silicon mass fraction (0-1)
+  iron: number;          // Iron mass fraction (0-1)
+}
+
+// Active nuclear reactions in the star
+export interface ActiveReactions {
+  coreReaction: NuclearReaction;           // Primary reaction in core
+  shellReactions: NuclearReaction[];        // Reactions in shells
+  energyProductionRate: number;             // Energy production in L☉
+}
+
+// Shell burning indicators
+export interface ShellBurning {
+  hydrogenShell: boolean;     // Is hydrogen burning in a shell?
+  heliumShell: boolean;       // Is helium burning in a shell?
+  carbonShell: boolean;       // Is carbon burning in a shell?
+}
+
+// Layer structure (radii as fractions of total stellar radius)
+export interface LayerStructure {
+  coreRadius: number;           // Core radius as fraction of total (0-1)
+  radiativeZoneRadius: number;  // Radiative zone outer radius as fraction (0-1)
+  convectiveZoneRadius: number; // Convective zone outer radius as fraction (0-1)
+}
+
+// Internal structure of the star
+export interface InternalStructure {
+  coreComposition: CoreComposition;     // Element mass fractions in core
+  coreTemperature: number;              // Core temperature in Kelvin
+  corePressure: number;                 // Core pressure in Pa
+  activeReactions: ActiveReactions;     // Nuclear reactions occurring
+  shellBurning: ShellBurning;           // Shell burning indicators
+  layerStructure: LayerStructure;       // Structural layers
+}
+
 // Star properties
 export interface Star {
   id: string;
@@ -60,6 +116,7 @@ export interface Star {
   lifetime: number;                // Total main sequence lifetime in years
   position: Vector3;               // Position in AU
   velocity: Vector3;               // Velocity in AU/year
+  internalStructure: InternalStructure;  // Internal structure data
 }
 
 // Planet composition types
