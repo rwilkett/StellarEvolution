@@ -12,7 +12,7 @@ import { DataPanel } from './ui/DataPanel';
 import { CloudParametersInput } from './ui/CloudParametersInput';
 import { SimulationControls } from './ui/SimulationControls';
 import { TimelineDisplay } from './ui/TimelineDisplay';
-import { StellarPropertiesDisplay } from './ui/StellarPropertiesDisplay';
+import { TabbedStellarPropertiesDisplay } from './ui/TabbedStellarPropertiesDisplay';
 import { SystemOverview } from './ui/SystemOverview';
 import { InternalStructureView } from './ui/InternalStructureView';
 import { NuclearSynthesisPanel } from './ui/NuclearSynthesisPanel';
@@ -80,7 +80,7 @@ function AppContent() {
               <SystemOverview />
             </div>
             <div style={{ marginBottom: '20px' }}>
-              <StellarPropertiesDisplay />
+              <TabbedStellarPropertiesDisplay />
             </div>
             {primaryStar && (
               <div style={{ marginBottom: '20px' }}>
